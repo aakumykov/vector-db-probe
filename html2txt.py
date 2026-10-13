@@ -1,14 +1,20 @@
 import argparse
 import os
+import sys
 import shutil
 from pathlib import Path
 from bs4 import BeautifulSoup
 
-def clear_dir(folder_path):
+def recreate_dir(folder_path):
     try:
-        shutil.rmtree(folder_path)
-        os.makedirs(folder_path, exist_ok=True)
-        print(f'Содержимое каталога {folder_path} успешно очищено.')
+        if folder_path.exists():
+            shutil.rmtree(folder_path)
+            os.makedirs(folder_path, exist_ok=True)
+            print(f'Содержимое каталога {folder_path} успешно очищено.')
+        else:
+            os.makedirs(folder_path, exist_ok=True)
+            print(f'Каталога {folder_path} просто создан.')
+
     except OSError as e:
         print(f'Ошибка при очистке {folder_path}: {e.strerror}')
 
@@ -28,7 +34,9 @@ def main():
         print(f"Ошибка: Каталог '{source_dir}' не найден или не является директорией.")
         return
 
-    clear_dir(target_dir)
+    recreate_dir(target_dir)
+    # sys.exit(0)
+
 
     # 3. Поиск всех файлов с расширениями .html и .htm
     html_files = list(source_dir.glob("*.{html}")) + list(source_dir.glob("*.htm")) + list(source_dir.glob("*.xhtml"))
@@ -64,7 +72,7 @@ def main():
             with open(txt_file, 'w', encoding='utf-8') as file:
                 file.write(text)
                 
-            print(f"Успешно: {html_file.name} -> {txt_file.name}")
+            print(f"Успешно: {html_file.name} --> {txt_file.name}")
             
         except Exception as e:
             print(f"Ошибка при обработке {html_file.name}: {e}")
