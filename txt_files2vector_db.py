@@ -48,49 +48,18 @@ def load_model(name):
     model = SentenceTransformer(name)
 
 
-def convert_text_to_embeddings():
+def convert_text_to_embeddings(directory, collection):
 
-
-
-def main():
-    # 1. Настройка аргументов командной строки
-    parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
-    group = parser.add_mutually_exclusive_group(required=True)  # required=True делает один из аргументов обязательным
-    group.add_argument("--load-from", type=str, dest="directory", help="Путь к каталогу с txt файлами")
-    group.add_argument("--query", action='store_true', help="Режим запросов к БД")
-    parser.add_argument("-c", "--collection", type=str, default="my_txt_db", help="Имя коллекции в БД (по умолчанию: my_txt_db)")
-    parser.add_argument("-k", "--top_k", type=int, default=3, help="Количество результатов поиска (по умолчанию: 3)")
-    args = parser.parse_args()
-    
-    if args.directory:
-        convert_text_to_embeddings()
-    else if (args.query):
-        query_database()
-    else:
-        raise ArgumentError("Ошибка аргументов: непонятно, что делать.")
-
-    # 2. Загрузка модели
-    # model = load_model("cointegrated/rubert-tiny2")
-    model = load_model("intfloat/multilingual-e5-small")
-    
-    
-    # 3. Чтение файлов
-    texts, ids, metadatas = load_texts_from_directory(args.directory)
+    texts, ids, metadatas = load_texts_from_directory(directory)
     print(f"Успешно загружено {len(texts)} документов.")
     
-    # 4. Создание эмбеддингов
     print("Создание эмбеддингов (это может занять время)...")
     embeddings = model.encode(texts).tolist()
 
     if not embeddings:
-        print("Нет (пустой список) эмбеддингов")
-        return
-    
-    # 5. Инициализация БД и сохранение
-    client = chromadb.PersistentClient(path="./vector_db_storage")
-    collection = client.get_or_create_collection(name=args.collection)
-    
-    # Используем upsert вместо add, чтобы при повторном запуске скрипта 
+        raise StateError("Нет (пустой список) эмбеддингов")
+
+    # Используем upsert вместо add, чтобы при повторном запуске скрипта
     # файлы просто обновились, а не вызвали ошибку дублирования ID
     collection.upsert(
         ids=ids,
@@ -99,12 +68,21 @@ def main():
         metadatas=metadatas
     )
     print(f"Данные успешно сохранены в коллекцию '{args.collection}'. Всего документов: {collection.count()}")
+
+
+
+def prepare(collection_name, db_path="./vector_db_storage"):
+    # model = load_model("cointegrated/rubert-tiny2")
+    model = load_model("intfloat/multilingual-e5-small")
     
-    # 6. Интерактивный режим поиска
-    print("\n" + "="*50)
-    print("База данных готова! Введите поисковый запрос (или 'exit' для выхода).")
-    print("="*50)
-    
+    client = chromadb.PersistentClient(path=db_path)
+    collection = client.get_or_create_collection(name=collection_name)
+
+    return model, collection
+
+
+
+def query_database(model, collection):
     while True:
         query = input("\nВаш запрос: ").strip()
         if query.lower() in ['exit', 'quit', 'выход', 'q']:
@@ -127,6 +105,25 @@ def main():
             print(f"[{i+1}] Файл: {meta['source']} (Дистанция: {distance:.4f})")
             print(f"    Текст: {preview}\n")
 
-if __name__ == "__main__":
-    main()
+
+
+    
+parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
+group = parser.add_mutually_exclusive_group(required=True)  # required=True делает один из аргументов обязательным
+group.add_argument("--load-from", type=str, dest="directory", help="Путь к каталогу с txt файлами")
+group.add_argument("--query", action='store_true', help="Режим запросов к БД")
+parser.add_argument("-c", "--collection", type=str, default="my_txt_db", help="Имя коллекции в БД (по умолчанию: my_txt_db)")
+parser.add_argument("-k", "--top_k", type=int, default=3, help="Количество результатов поиска (по умолчанию: 3)")
+args = parser.parse_args()
+
+
+if args.directory:
+    model, collection = prepare(collection_name=args.collection)
+    convert_text_to_embeddings(args.directory, collection)
+elif args.query:
+    model, collection = prepare(collection_name=args.collection)
+    query_database(model, collection)
+else:
+    raise Exception("Неизвестно, что делать (аргументы)")
+
 
