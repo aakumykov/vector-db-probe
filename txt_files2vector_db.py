@@ -43,19 +43,36 @@ def load_texts_from_directory(directory_path):
     return texts, ids, metadatas
 
 
+def load_model(name):
+    print(f"Загрузка модели {name}...")
+    model = SentenceTransformer(name)
+
+
+def convert_text_to_embeddings():
+
+
+
 def main():
     # 1. Настройка аргументов командной строки
     parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
-    parser.add_argument("directory", type=str, help="Путь к каталогу с txt файлами")
+    group = parser.add_mutually_exclusive_group(required=True)  # required=True делает один из аргументов обязательным
+    group.add_argument("--load-from", type=str, dest="directory", help="Путь к каталогу с txt файлами")
+    group.add_argument("--query", action='store_true', help="Режим запросов к БД")
     parser.add_argument("-c", "--collection", type=str, default="my_txt_db", help="Имя коллекции в БД (по умолчанию: my_txt_db)")
     parser.add_argument("-k", "--top_k", type=int, default=3, help="Количество результатов поиска (по умолчанию: 3)")
     args = parser.parse_args()
     
+    if args.directory:
+        convert_text_to_embeddings()
+    else if (args.query):
+        query_database()
+    else:
+        raise ArgumentError("Ошибка аргументов: непонятно, что делать.")
+
     # 2. Загрузка модели
-    model_name = "intfloat/multilingual-e5-small"
-    # model_name = "cointegrated/rubert-tiny2"
-    print(f"Загрузка модели {model_name}...")
-    model = SentenceTransformer(model_name)
+    # model = load_model("cointegrated/rubert-tiny2")
+    model = load_model("intfloat/multilingual-e5-small")
+    
     
     # 3. Чтение файлов
     texts, ids, metadatas = load_texts_from_directory(args.directory)
