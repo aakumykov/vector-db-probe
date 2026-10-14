@@ -1,7 +1,30 @@
+#!.venv/bin/python
+
 import argparse
 from pathlib import Path
+from huggingface_hub import login
 from sentence_transformers import SentenceTransformer
 import chromadb
+from pathlib import Path
+from os.path import expanduser
+import os
+
+# Запрещаем любые сетевые запросы к Hugging Face
+os.environ["HF_HUB_OFFLINE"] = "1" 
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
+
+def hf_auth_token(token_path=f'{expanduser("~")}/.hf_token'):
+    token = Path(token_path).read_text()
+    if not token:
+        raise ValueError(f"No or empty token from '{token_path}'")
+    return token
+
+
+
+def auth_in_hf(token):
+    login(token)
+
 
 
 def load_texts_from_directory(directory_path):
@@ -45,7 +68,7 @@ def load_texts_from_directory(directory_path):
 
 def load_model(name):
     print(f"Загрузка модели {name}...")
-    model = SentenceTransformer(name)
+    return SentenceTransformer(name)
 
 
 def convert_text_to_embeddings(directory, collection):
@@ -113,8 +136,11 @@ group = parser.add_mutually_exclusive_group(required=True)  # required=True де
 group.add_argument("--load-from", type=str, dest="directory", help="Путь к каталогу с txt файлами")
 group.add_argument("--query", action='store_true', help="Режим запросов к БД")
 parser.add_argument("-c", "--collection", type=str, default="my_txt_db", help="Имя коллекции в БД (по умолчанию: my_txt_db)")
-parser.add_argument("-k", "--top_k", type=int, default=3, help="Количество результатов поиска (по умолчанию: 3)")
+parser.add_argument("-k", "--top_k", type=int, default=5, help="Количество результатов поиска (по умолчанию: 5)")
 args = parser.parse_args()
+
+
+auth_in_hf
 
 
 if args.directory:
