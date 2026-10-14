@@ -126,7 +126,7 @@ def prepare(m_name: str, c_name: str, path_to_db: str):
 
 
 
-def query_database(m_name, collection):
+def query_database(model, collection):
     while True:
         query = input("\nВаш запрос: ").strip()
         if query.lower() in ['exit', 'quit', 'выход', 'q']:
@@ -134,7 +134,7 @@ def query_database(m_name, collection):
         if not query:
             continue
             
-        query_embedding = m_name.encode([query]).tolist()
+        query_embedding = model.encode([query]).tolist()
         
         results = collection.query(
             query_embeddings=query_embedding,
