@@ -12,8 +12,8 @@ from huggingface_hub import login
 from sentence_transformers import SentenceTransformer
 
 # Запрещаем любые сетевые запросы к Hugging Face
-os.environ["HF_HUB_OFFLINE"] = "1" 
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
+# os.environ["HF_HUB_OFFLINE"] = "1"
+# os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 
 class Models(Enum):
@@ -33,8 +33,8 @@ def list_available_models():
         print(f'* "{item.value}", код: {item.name}')
 
 
-def hf_auth_token(token_path=f'{expanduser("~")}/.hf_token'):
-    token = Path(token_path).read_text()
+def hf_auth_token(token_path='.hf_token'):
+    token = Path(token_path).read_text().strip()
     if not token:
         raise ValueError(f"No or empty token from '{token_path}'")
     return token
@@ -117,8 +117,10 @@ def convert_text_to_embeddings(model, directory, collection):
 def prepare(m_name: str, c_name: str, path_to_db: str):
     import os
     if not os.path.exists(path_to_db):
+        print(f'Создаю каталог "{path_to_db}"')
         os.makedirs(path_to_db)
 
+    print(f'Подготовка БД в "{path_to_db}"')
     client = chromadb.PersistentClient(path=path_to_db)
     return load_model(m_name), client.get_or_create_collection(name=c_name)
 
