@@ -1,17 +1,36 @@
 #!.venv/bin/python
 
 import argparse
+import os
+import sys
+from enum import Enum
+from os.path import expanduser
 from pathlib import Path
+
+import chromadb
 from huggingface_hub import login
 from sentence_transformers import SentenceTransformer
-import chromadb
-from pathlib import Path
-from os.path import expanduser
-import os
 
 # Запрещаем любые сетевые запросы к Hugging Face
 os.environ["HF_HUB_OFFLINE"] = "1" 
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
+
+class Models(Enum):
+    INTFLOAT_MULTILINGUAL_E5_SMALL = "intfloat/multilingual-e5-small"
+    COINTEGRATED_RUBERT_TINY = "cointegrated/rubert-tiny2"
+    SBERT_LARGE_NLU_RU = "ai-forever/sbert_large_nlu_ru"
+    # FRIDA = "ai-forever/FRIDA"
+    # RU_EN_ROSBERTA = "ai-forever/ru-en-RoSBERTa" # Нужны спец. префиксы
+    # DEEPVK_USER_BASE = "deepvk/USER-base" # Нужны спец. префиксы
+    # "sergeyzh/LaBSE-ru-turbo"
+    # "ai-forever/sbert_large_nlu_ru"
+
+
+def list_available_models():
+    print("Доступныя модели:")
+    for item in Models:
+        print(f'* "{item.value}", код: {item.name}')
 
 
 def hf_auth_token(token_path=f'{expanduser("~")}/.hf_token'):
@@ -22,8 +41,13 @@ def hf_auth_token(token_path=f'{expanduser("~")}/.hf_token'):
 
 
 
-def auth_in_hf(token):
+def auth_in_hugging_face(token):
     login(token)
+
+
+def load_model(name):
+    print(f"Загрузка модели {name}...")
+    return SentenceTransformer(name)
 
 
 
@@ -66,12 +90,8 @@ def load_texts_from_directory(directory_path):
     return texts, ids, metadatas
 
 
-def load_model(name):
-    print(f"Загрузка модели {name}...")
-    return SentenceTransformer(name)
 
-
-def convert_text_to_embeddings(directory, collection):
+def convert_text_to_embeddings(model, directory, collection):
 
     texts, ids, metadatas = load_texts_from_directory(directory)
     print(f"Успешно загружено {len(texts)} документов.")
@@ -80,7 +100,7 @@ def convert_text_to_embeddings(directory, collection):
     embeddings = model.encode(texts).tolist()
 
     if not embeddings:
-        raise StateError("Нет (пустой список) эмбеддингов")
+        raise Exception("Нет (пустой список) эмбеддингов")
 
     # Используем upsert вместо add, чтобы при повторном запуске скрипта
     # файлы просто обновились, а не вызвали ошибку дублирования ID
@@ -94,18 +114,13 @@ def convert_text_to_embeddings(directory, collection):
 
 
 
-def prepare(collection_name, db_path="./vector_db_storage"):
-    # model = load_model("cointegrated/rubert-tiny2")
-    model = load_model("intfloat/multilingual-e5-small")
-    
+def prepare(m_name: str, c_name: str, db_path="./vector_db_storage"):
     client = chromadb.PersistentClient(path=db_path)
-    collection = client.get_or_create_collection(name=collection_name)
-
-    return model, collection
+    return load_model(m_name), client.get_or_create_collection(name=c_name)
 
 
 
-def query_database(model, collection):
+def query_database(m_name, collection):
     while True:
         query = input("\nВаш запрос: ").strip()
         if query.lower() in ['exit', 'quit', 'выход', 'q']:
@@ -113,7 +128,7 @@ def query_database(model, collection):
         if not query:
             continue
             
-        query_embedding = model.encode([query]).tolist()
+        query_embedding = m_name.encode([query]).tolist()
         
         results = collection.query(
             query_embeddings=query_embedding,
@@ -133,22 +148,34 @@ def query_database(model, collection):
     
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)  # required=True делает один из аргументов обязательным
-group.add_argument("--load-from", type=str, dest="directory", help="Путь к каталогу с txt файлами")
+group.add_argument("--list", action='store_true', help="Показатб список доступных моделей")
+group.add_argument("--load-from", type=str, dest="source_directory", help="Путь к каталогу с txt файлами")
 group.add_argument("--query", action='store_true', help="Режим запросов к БД")
+
+parser.add_argument("--model", type=str, dest="model_code", help="Код модели")
 parser.add_argument("-c", "--collection", type=str, default="my_txt_db", help="Имя коллекции в БД (по умолчанию: my_txt_db)")
 parser.add_argument("-k", "--top_k", type=int, default=5, help="Количество результатов поиска (по умолчанию: 5)")
 args = parser.parse_args()
 
 
-auth_in_hf
+if args.list:
+    list_available_models()
+    sys.exit(0)
+
+
+model_enum = Models[args.model_code]
+model_name = model_enum.value
+collection_name = model_enum.name
 
 
 if args.directory:
-    model, collection = prepare(collection_name=args.collection)
-    convert_text_to_embeddings(args.directory, collection)
+    auth_in_hugging_face(hf_auth_token())
+    m, c = prepare(model_name, collection_name)
+    convert_text_to_embeddings(m, args.source_directory, c)
 elif args.query:
-    model, collection = prepare(collection_name=args.collection)
-    query_database(model, collection)
+    auth_in_hugging_face(hf_auth_token())
+    m, c = prepare(model_name, collection_name)
+    query_database(m, c)
 else:
     raise Exception("Неизвестно, что делать (аргументы)")
 
