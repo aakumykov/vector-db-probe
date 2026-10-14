@@ -114,8 +114,12 @@ def convert_text_to_embeddings(model, directory, collection):
 
 
 
-def prepare(m_name: str, c_name: str, db_path="./vector_db_storage"):
-    client = chromadb.PersistentClient(path=db_path)
+def prepare(m_name: str, c_name: str, path_to_db: str):
+    import os
+    if not os.path.exists(path_to_db):
+        os.makedirs(path_to_db)
+
+    client = chromadb.PersistentClient(path=path_to_db)
     return load_model(m_name), client.get_or_create_collection(name=c_name)
 
 
@@ -163,18 +167,22 @@ if args.list:
     sys.exit(0)
 
 
+DB_DIR="db"
+
 model_enum = Models[args.model_code]
 model_name = model_enum.value
 collection_name = model_enum.name
+db_name = collection_name.lower()
+db_path = os.path.join(DB_DIR, db_name)
 
 
-if args.directory:
+if args.source_directory:
     auth_in_hugging_face(hf_auth_token())
-    m, c = prepare(model_name, collection_name)
+    m, c = prepare(model_name, collection_name, db_path)
     convert_text_to_embeddings(m, args.source_directory, c)
 elif args.query:
     auth_in_hugging_face(hf_auth_token())
-    m, c = prepare(model_name, collection_name)
+    m, c = prepare(model_name, collection_name, db_path)
     query_database(m, c)
 else:
     raise Exception("Неизвестно, что делать (аргументы)")
