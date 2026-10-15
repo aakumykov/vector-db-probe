@@ -1,18 +1,53 @@
 #!.venv/bin/python
 
-from pathlib import Path
-from huggingface_hub import login
+import chromadb
+from chromadb.types import Collection
 from sentence_transformers import SentenceTransformer
+from for_text_in_files import for_text_in_files
+from login_to_huggingface import login_to_huggingface
 
 
-def auth_in_hf(token_path='.hf_token'):
-    token = Path(token_path).read_text().strip()
-    if not token:
-        raise ValueError(f"No or empty token from '{token_path}'")
-    login(token)
+login_to_huggingface()
 
 
-auth_in_hf()
+chromadb_client = chromadb.Client()
+chromadb_collection = chromadb_client.create_collection(name="frida_test_1")
+
+frida_model = SentenceTransformer("ai-forever/FRIDA")
+
+
+def process_text_to_embedding(file_name: str, text: str, model, db_collection: Collection):
+    e = text2embedding(text, model)
+    store_embedding_in_database(
+        collection = db_collection,
+        emb = e,
+        emb_id = file_name,
+        emb_metadata = { file_name: file_name},
+        orig_text = text
+    )
+
+
+def text2embedding(t: str, model: SentenceTransformer):
+    # TODO: попробовать convert_to_tensor=True
+    return  model.encode(t, convert_to_numpy=True)
+
+
+def store_embedding_in_database(
+        collection: Collection,
+        emb,
+        emb_id: str,
+        emb_metadata: dict,
+        orig_text: str,
+):
+    collection.add(
+        embeddings=[emb],
+        ids=[emb_id],
+        documents=[orig_text],
+        metadatas = [emb_metadata]
+    )
+
+
+for_text_in_files("txt", process_text_to_embedding)
 
 inputs = [
     # 
