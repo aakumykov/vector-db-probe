@@ -50,7 +50,7 @@ for p in Path("txt").iterdir():
         metadata = { "file_name": file_name, "text_length": len(text) }
 
         log_start(f"Кодирую {file_name}.....")
-        one_embedding = frida_model.encode(text, convert_to_numpy=True)
+        one_embedding = frida_model.encode(f'search_document:{text}', convert_to_numpy=True)
         log_finish()
 
         # TODO: convert_to_tensor=True
