@@ -32,7 +32,7 @@ log_finish()
 
 log_start("Создаю клиента БД.....")
 chromadb_client = chromadb.PersistentClient(path="frida_db")
-chromadb_collection = chromadb_client.create_collection(name="frida_test_1")
+chromadb_collection = chromadb_client.create_collection(name="frida_test_2")
 log_finish()
 
 
