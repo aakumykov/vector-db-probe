@@ -1,6 +1,8 @@
 #!.venv/bin/python
+from argparse import ArgumentError
 
 import chromadb
+import sys
 from chromadb.types import Collection
 from sentence_transformers import SentenceTransformer
 from sympy import true, false
@@ -19,6 +21,12 @@ def log_start(s: str):
 def log_finish(s: str = "готово"):
     print(s)
 
+if 2 != len(sys.argv):
+    print("Предоставьте имя коллекции для запросов: frida_test_1 или frida_test_2")
+    sys.exit(1)
+else:
+    collection_name = sys.argv[1]
+
 
 log_start("Авторизация в HuggingFace.....")
 login_to_huggingface()
@@ -32,7 +40,7 @@ log_finish()
 
 log_start("Создаю клиента БД.....")
 chromadb_client = chromadb.PersistentClient(path="frida_db")
-chromadb_collection = chromadb_client.get_or_create_collection(name="frida_test_1")
+chromadb_collection = chromadb_client.get_or_create_collection(name=collection_name)
 log_finish()
 
 
