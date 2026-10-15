@@ -31,7 +31,7 @@ log_finish()
 
 
 log_start("Создаю клиента БД.....")
-chromadb_client = chromadb.Client()
+chromadb_client = chromadb.Client(database="frida_db")
 chromadb_collection = chromadb_client.create_collection(name="frida_test_1")
 log_finish()
 
