@@ -1,3 +1,4 @@
 .hf_token
 nohup.out
 __pycache__
+.venv
