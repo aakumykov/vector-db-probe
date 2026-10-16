@@ -44,60 +44,63 @@ chromadb_collection = chromadb_client.get_or_create_collection(name=collection_n
 log_finish()
 
 
-# log("Извлекаю данные из файлов.....")
-# embeddings = []
-# ids = []
-# raw_documents = []
-# metadatas = []
-#
-# for p in Path("txt").iterdir():
-#     if p.is_file() and p.suffix == '.txt':
-#         text = p.read_text(encoding='utf-8')
-#         file_name = p.name
-#         id = file_name
-#         metadata = { "file_name": file_name, "text_length": len(text) }
-#
-#         log_start(f"Кодирую {file_name}.....")
-#         one_embedding = frida_model.encode(text, convert_to_numpy=True)
-#         log_finish()
-#
-#         # TODO: convert_to_tensor=True
-#         embeddings.append(one_embedding)
-#         ids.append(id)
-#         metadatas.append(metadata)
-#         raw_documents.append(text)
-#
-#
-# log_start("Сохраняю все коды в БД.....")
-# chromadb_collection.upsert(
-#     embeddings=embeddings,
-#     ids=ids,
-#     documents=raw_documents,
-#     metadatas=metadatas,
-# )
-# log_finish(f"Успешно добавлено {len(embeddings)} документов в векторную БД.")
+log("Извлекаю данные из файлов.....")
+embeddings = []
+ids = []
+raw_documents = []
+metadatas = []
 
-top_k = 5
-doc_preview_len = 500
+for p in Path("txt").iterdir():
+    if p.is_file() and p.suffix == '.txt':
+        text = p.read_text(encoding='utf-8')
+        file_name = p.name
+        id = file_name
+        metadata = { "file_name": file_name, "text_length": len(text) }
 
-while True:
-    query = input("\nВаш запрос: ").strip()
-    if query.lower() in ['exit', 'quit', 'выход', 'q']:
-        break
-    if not query:
-        continue
+        log_start(f"Кодирую {file_name}.....")
+        one_embedding = frida_model.encode(text, convert_to_numpy=True)
+        log_finish()
 
-    query_embedding = frida_model.encode([query]).tolist()
+        # TODO: convert_to_tensor=True
+        embeddings.append(one_embedding)
+        ids.append(id)
+        metadatas.append(metadata)
+        raw_documents.append(text)
 
-    results = chromadb_collection.query(
-        query_embeddings=query_embedding,
-        n_results=top_k
-    )
 
-    print(f"\n--- Топ-5 результатов ---")
-    for i, (doc, meta) in enumerate(zip(results['documents'][0], results['metadatas'][0])):
-        distance = results['distances'][0][i]
-        # Красиво обрезаем длинный текст для вывода
-        preview = doc[:doc_preview_len].replace('\n', ' ') + "..." if len(doc) > doc_preview_len else doc.replace('\n', ' ')
-        print(f"[{i + 1}] Файл: {meta['file_name']} (Дистанция: {distance:.4f})")
-        print(f"    Текст: {preview}\n")
+log_start("Сохраняю все коды в БД.....")
+chromadb_collection.upsert(
+    embeddings=embeddings,
+    ids=ids,
+    documents=raw_documents,
+    metadatas=metadatas,
+)
+log_finish(f"Успешно добавлено {len(embeddings)} документов в векторную БД.")
+
+
+
+
+# top_k = 5
+# doc_preview_len = 500
+#
+# while True:
+#     query = input("\nВаш запрос: ").strip()
+#     if query.lower() in ['exit', 'quit', 'выход', 'q']:
+#         break
+#     if not query:
+#         continue
+#
+#     query_embedding = frida_model.encode([query]).tolist()
+#
+#     results = chromadb_collection.query(
+#         query_embeddings=query_embedding,
+#         n_results=top_k
+#     )
+#
+#     print(f"\n--- Топ-5 результатов ---")
+#     for i, (doc, meta) in enumerate(zip(results['documents'][0], results['metadatas'][0])):
+#         distance = results['distances'][0][i]
+#         # Красиво обрезаем длинный текст для вывода
+#         preview = doc[:doc_preview_len].replace('\n', ' ') + "..." if len(doc) > doc_preview_len else doc.replace('\n', ' ')
+#         print(f"[{i + 1}] Файл: {meta['file_name']} (Дистанция: {distance:.4f})")
+#         print(f"    Текст: {preview}\n")
