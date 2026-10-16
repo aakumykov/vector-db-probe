@@ -1,5 +1,6 @@
 #!.venv/bin/python
 from argparse import ArgumentError
+from unittest import case
 
 import chromadb
 import sys
@@ -27,6 +28,18 @@ if 2 != len(sys.argv):
 else:
     collection_name = sys.argv[1]
 
+
+match collection_name:
+    case "frida_test_2":
+        encode_prefix = "search_document:"
+        query_prefix = "search_query:"
+    case _:
+        encode_prefix = ""
+        query_prefix = ""
+
+log(f"collection_name:{collection_name})")
+log(f"encode_prefix:{encode_prefix}")
+log(f"query_prefix:{query_prefix}")
 
 log_start("Авторизация в HuggingFace.....")
 login_to_huggingface()
@@ -58,7 +71,7 @@ for p in Path("txt").iterdir():
         metadata = { "file_name": file_name, "text_length": len(text) }
 
         log_start(f"Кодирую {file_name}.....")
-        one_embedding = frida_model.encode(text, convert_to_numpy=True)
+        one_embedding = frida_model.encode(f'{encode_prefix}{text}', convert_to_numpy=True)
         log_finish()
 
         # TODO: convert_to_tensor=True
@@ -84,13 +97,13 @@ log_finish(f"Успешно добавлено {len(embeddings)} докумен�
 # doc_preview_len = 500
 #
 # while True:
-#     query = input("\nВаш запрос: ").strip()
-#     if query.lower() in ['exit', 'quit', 'выход', 'q']:
+#     query_text = input("\nВаш запрос: ").strip()
+#     if query_text.lower() in ['exit', 'quit', 'выход', 'q']:
 #         break
-#     if not query:
+#     if not query_text:
 #         continue
 #
-#     query_embedding = frida_model.encode([query]).tolist()
+#     query_embedding = frida_model.encode(f'{query_prefix}{query_text}').tolist()
 #
 #     results = chromadb_collection.query(
 #         query_embeddings=query_embedding,
