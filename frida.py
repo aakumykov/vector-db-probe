@@ -13,6 +13,7 @@ from login_to_huggingface import login_to_huggingface
 from collections.abc import Callable
 from pathlib import Path
 
+
 def log(s: str):
     print(s)
 
@@ -22,24 +23,36 @@ def log_start(s: str):
 def log_finish(s: str = "готово"):
     print(s)
 
+def log_args():
+    c=0
+    for a in sys.argv:
+        print(f'аргумент {c}: {sys.argv[c]}')
+        c+=1
+
+
+#log_args()
+
+
 if 2 != len(sys.argv):
     print("Предоставьте имя коллекции для запросов: frida_test_1 или frida_test_2")
     sys.exit(1)
+
+
+coll_name = sys.argv[1]
+
+
+if "frida_test_2" == coll_name:
+    encode_prefix = "search_document:"
+    query_prefix = "search_query:"
 else:
-    collection_name = sys.argv[1]
+    encode_prefix = ""
+    query_prefix = ""
 
 
-match collection_name:
-    case "frida_test_2":
-        encode_prefix = "search_document:"
-        query_prefix = "search_query:"
-    case _:
-        encode_prefix = ""
-        query_prefix = ""
+log(f"coll_name:{coll_name}")
+log(f"encode_prefix: {encode_prefix}")
+log(f"query_prefix: {query_prefix}")
 
-log(f"collection_name:{collection_name})")
-log(f"encode_prefix:{encode_prefix}")
-log(f"query_prefix:{query_prefix}")
 
 log_start("Авторизация в HuggingFace.....")
 login_to_huggingface()
@@ -53,7 +66,7 @@ log_finish()
 
 log_start("Создаю клиента БД.....")
 chromadb_client = chromadb.PersistentClient(path="frida_db")
-chromadb_collection = chromadb_client.get_or_create_collection(name=collection_name)
+chromadb_collection = chromadb_client.get_or_create_collection(name=coll_name)
 log_finish()
 
 
