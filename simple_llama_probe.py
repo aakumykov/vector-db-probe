@@ -10,12 +10,12 @@ PORT=9931
 BASE_URL = f"http://{HOST}:{PORT}/v1"
 MODEL_NAME="frida_guuf_bf16"
 
-def text2vector(text: str) -> list:
+def text2vector(text: str, prefix: str="") -> list:
     resp = requests.post(
         "http://127.0.0.1:9931/embeddings",
         json={
             "model": MODEL_NAME,
-            "input": "Какой-то текст для эмбеддинга",
+            "input": f"{prefix}:{text}",
             "encoding_format": "float",
         },
         timeout=120,
@@ -37,10 +37,11 @@ def l2_normalize(vector: list[float]) -> list[float]:
 text_list = [
     "Кошка сидит на окне",
     "На окне сидит кошка",
-    # "кошка на окне сидит",
-    # "на окне кошка сидит",
-    # "сидит на окне кошка",
-    "рыба плавает в воде"
+    "кошка на окне сидит",
+    "на окне кошка сидит",
+    "сидит на окне кошка",
+    "рыба плавает в воде",
+    "программист работает на компьютере"
 ]
 
 # for i, t in enumerate(text_list):
@@ -54,8 +55,8 @@ for first in range(len(text_list) - 1):
         first_text = text_list[first]
         second_text = text_list[second]
 
-        first_vector = text2vector(first_text)
-        second_vector = text2vector(second_text)
+        first_vector = text2vector(first_text, "search_document")
+        second_vector = text2vector(second_text, "search_query")
 
         norm_first_vector = l2_normalize(first_vector)
         norm_second_vector = l2_normalize(second_vector)
@@ -63,6 +64,6 @@ for first in range(len(text_list) - 1):
         similarity = cos_sim(first_vector, second_vector)
         norm_similarity = cos_sim(norm_first_vector, norm_second_vector)
 
-        print(f"сходство '{first_text}' | '{second_text}': не-Н:{similarity.item()}, Н:{norm_similarity.item()}")
+        print(f"сходство '{first_text}' | '{second_text}': не-Н: {similarity.item():.4f}, Н: {norm_similarity.item():.4f}")
 
     print('----')
