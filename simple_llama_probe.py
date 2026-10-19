@@ -15,7 +15,7 @@ def text2vector(text: str) -> list:
         "http://127.0.0.1:9931/embeddings",
         json={
             "model": MODEL_NAME,
-            "input": "Какой-то текст для эмбеддинга",
+            "input": text,
             "encoding_format": "float",
         },
         timeout=120,
@@ -40,7 +40,10 @@ text_list = [
     # "кошка на окне сидит",
     # "на окне кошка сидит",
     # "сидит на окне кошка",
-    "рыба плавает в воде"
+
+    "рыба плавает в воде",
+
+    "программист работает за компьютером"
 ]
 
 # for i, t in enumerate(text_list):
@@ -63,6 +66,6 @@ for first in range(len(text_list) - 1):
         similarity = cos_sim(first_vector, second_vector)
         norm_similarity = cos_sim(norm_first_vector, norm_second_vector)
 
-        print(f"сходство '{first_text}' | '{second_text}': не-Н:{similarity.item()}, Н:{norm_similarity.item()}")
+        print(f"сходство '{first_text}' | '{second_text}': не-Н:{similarity.item():.4f}, Н:{norm_similarity.item():.4f}")
 
     print('----')
