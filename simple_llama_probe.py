@@ -7,16 +7,37 @@ import sys
 import math
 from sentence_transformers.util import cos_sim
 
+parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument("-s", "--search", action='store_true', help="Режим поиска первого аргумента во втором")
+group.add_argument("-p", "--paraphrase", action='store_true', help="Проверка на выражение другими словами")
+parser.add_argument("-1", type=str, dest="first_text", help="Текст №1")
+parser.add_argument("-2", type=str, dest="second_text", help="Текст №2")
+args = parser.parse_args()
+# args, rest = parser.parse_known_args()
 
-# parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
-# parser.add_argument("--prefix", action='store_true', type=bool, default=False, dest="use_prefix", help="Использовать префиксы (search_document, search_query)")
-# args = parser.parse_args()
-#
-# use_prefix = args.use_prefix
+MODE_NAME=""
+MODE_OPERAND=""
+FIRST_PREFIX=""
+SECOND_PREFIX=""
 
-DOCUMENT_PREFIX="search_document"
-QUERY_PREFIX="search_query"
-PARAPHRASE_PREFIX="paraphrase"
+FIRST_TEXT=args.first_text
+SECOND_TEXT=args.second_text
+
+
+if args.search:
+    MODE_NAME = "поиск"
+    MODE_OPERAND = "в"
+    FIRST_PREFIX = "search_document"
+    SECOND_PREFIX = "search_query"
+elif args.paraphrase:
+    MODE_NAME = "перефразировка"
+    MODE_OPERAND = "и"
+    FIRST_PREFIX = "paraphrase"
+    SECOND_PREFIX = "paraphrase"
+else:
+    raise ArgumentError(args.search, f"Неизвестный режим работы ({parser.usage})")
+
 
 HOST="127.0.0.1"
 PORT=9931
@@ -25,8 +46,8 @@ MODEL_NAME="frida_guuf_bf16"
 
 
 def text2vector(text: str, prefix: str) -> list:
-    input_string = text #f"{prefix}:{text}"
-    # print(input_string)
+
+    input_string = f"{prefix}:{text}"
 
     resp = requests.post(
         "http://127.0.0.1:9931/embeddings",
@@ -51,50 +72,15 @@ def l2_normalize(vector: list[float]) -> list[float]:
     return [x / norm for x in vector]
 
 
-text_list = [
-    "Привет!",
-    "Здравствуй!"
-    # "true",
-    # "Кошка сидит на окне",
-    # "На окне сидит кошка",
-    # "кошка на окне сидит",
-    # "на окне кошка сидит",
-    # "сидит на окне кошка",
+first_vector = text2vector(FIRST_TEXT, FIRST_PREFIX)
+second_vector = text2vector(SECOND_TEXT, SECOND_PREFIX)
 
-    # "рыба плавает в воде",
-    #
-    # "программист работает за компьютером",
-    #
-    # "завершена уборочная кампания",
-    #
-    # "qwerty",
-    # "qwerty",
-    # "йцукен",
-    # "abcdef",
-    # "ABCDEF"
-]
+norm_first_vector = l2_normalize(first_vector)
+norm_second_vector = l2_normalize(second_vector)
 
-# for i, t in enumerate(text_list):
-#     print(f'{i}) {t}')
+similarity = cos_sim(first_vector, second_vector)
+norm_similarity = cos_sim(norm_first_vector, norm_second_vector)
 
-
-for first in range(len(text_list) - 1):
-    for second in range(first + 1, len(text_list)):
-        # print(f'{first}-{second}')
-
-        first_text = text_list[first]
-        second_text = text_list[second]
-        # print(f'{first}: {first_text} -- {second}: {second_text}')
-
-        first_vector = text2vector(first_text, PARAPHRASE_PREFIX)
-        second_vector = text2vector(second_text, PARAPHRASE_PREFIX)
-
-        norm_first_vector = l2_normalize(first_vector)
-        norm_second_vector = l2_normalize(second_vector)
-
-        similarity = cos_sim(first_vector, second_vector)
-        norm_similarity = cos_sim(norm_first_vector, norm_second_vector)
-
-        print(f"сходство '{first_text}' | '{second_text}': не-Н:{similarity.item():.4f}, Н:{norm_similarity.item():.4f}")
-
-    print('----')
+print(f"{MODE_NAME}: '{FIRST_TEXT}' {MODE_OPERAND} '{SECOND_TEXT}'")
+print(f"нормализованных: {similarity.item():.4f}")
+print(f"не-нормализованных: {norm_similarity.item():.4f}")
