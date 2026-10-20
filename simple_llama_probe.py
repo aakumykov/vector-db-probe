@@ -24,8 +24,8 @@ MODEL_NAME="frida_guuf_bf16"
 
 
 def text2vector(text: str, prefix: str) -> list:
-    input_string = f"{prefix}:{text}"
-    print(input_string)
+    input_string = text #f"{prefix}:{text}"
+    # print(input_string)
 
     resp = requests.post(
         "http://127.0.0.1:9931/embeddings",
@@ -63,7 +63,11 @@ text_list = [
 
     "завершена уборочная кампания",
 
-    "qwerty"
+    "qwerty",
+    "qwerty",
+    "йцукен",
+    "abcdef",
+    "ABCDEF"
 ]
 
 # for i, t in enumerate(text_list):
