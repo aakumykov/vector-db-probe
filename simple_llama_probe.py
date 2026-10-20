@@ -25,7 +25,7 @@ MODEL_NAME="frida_guuf_bf16"
 
 
 def text2vector(text: str, prefix: str) -> list:
-    input_string = f"{prefix}:{text}"
+    input_string = text #f"{prefix}:{text}"
     # print(input_string)
 
     resp = requests.post(
@@ -52,23 +52,26 @@ def l2_normalize(vector: list[float]) -> list[float]:
 
 
 text_list = [
-    "Кошка сидит на окне",
-    "На окне сидит кошка",
+    "Привет!",
+    "Здравствуй!"
+    # "true",
+    # "Кошка сидит на окне",
+    # "На окне сидит кошка",
     # "кошка на окне сидит",
     # "на окне кошка сидит",
     # "сидит на окне кошка",
 
-    "рыба плавает в воде",
-
-    "программист работает за компьютером",
-
-    "завершена уборочная кампания",
-
-    "qwerty",
-    "qwerty",
-    "йцукен",
-    "abcdef",
-    "ABCDEF"
+    # "рыба плавает в воде",
+    #
+    # "программист работает за компьютером",
+    #
+    # "завершена уборочная кампания",
+    #
+    # "qwerty",
+    # "qwerty",
+    # "йцукен",
+    # "abcdef",
+    # "ABCDEF"
 ]
 
 # for i, t in enumerate(text_list):
