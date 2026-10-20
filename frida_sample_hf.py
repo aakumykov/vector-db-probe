@@ -4,8 +4,9 @@ import json
 import requests
 import numpy as np
 
-OLLAMA_HOST = "http://localhost:9931"
-MODEL_NAME = "frida_guuf_bf16"
+
+OLLAMA_HOST = "http://localhost:11434"
+MODEL_NAME = "hf.co/evilfreelancer/FRIDA-GGUF:BF16"
 
 
 def get_embedding(text):
@@ -15,13 +16,12 @@ def get_embedding(text):
     }
 
     response = requests.post(
-        f"{OLLAMA_HOST}/v1/embeddings",
+        f"{OLLAMA_HOST}/api/embed",
         data=json.dumps(payload, ensure_ascii=False),
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     response.raise_for_status()
-    e = response.json()["data"][0]["embedding"]
-    return np.array(e)
+    return np.array(response.json()["embeddings"][0])
 
 
 def normalize(vectors):
@@ -37,12 +37,17 @@ def cosine_diag_similarity(a, b):
 
 inputs = [
     #
-    "search_query: false",
+    "paraphrase: В Ярославской области разрешили работу бань, но без посетителей",
+    "categorize_entailment: Женщину доставили в больницу за ее жизнь сейчас борются врачи.",
+    "search_query: Сколько программистов нужно, чтобы вкрутить лампочку?",
     #
-    "search_document: true",
+    "paraphrase: Ярославским баням разрешили работать без посетителей",
+    "categorize_entailment: Женщину спасают врачи.",
+    "search_document: Чтобы вкрутить лампочку нужно три программиста.",
 ]
 size = int(len(inputs)/2)
 
 embeddings = normalize(np.array([get_embedding(text) for text in inputs]))
 sim_scores = cosine_diag_similarity(embeddings[:size], embeddings[size:])
 print(sim_scores.tolist())
+
