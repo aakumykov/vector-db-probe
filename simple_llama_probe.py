@@ -11,18 +11,17 @@ parser = argparse.ArgumentParser(description="Создание векторно�
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument("-s", "--search", action='store_true', help="Режим поиска первого аргумента во втором")
 group.add_argument("-p", "--paraphrase", action='store_true', help="Проверка на выражение другими словами")
-parser.add_argument("-1", type=str, dest="first_text", help="Текст №1")
-parser.add_argument("-2", type=str, dest="second_text", help="Текст №2")
-args = parser.parse_args()
-# args, rest = parser.parse_known_args()
+# parser.add_argument("-1", type=str, dest="first_text", help="Текст №1")
+# parser.add_argument("-2", type=str, dest="second_text", help="Текст №2")
+args, rest = parser.parse_known_args()
 
 MODE_NAME=""
 MODE_OPERAND=""
 FIRST_PREFIX=""
 SECOND_PREFIX=""
 
-FIRST_TEXT=args.first_text
-SECOND_TEXT=args.second_text
+FIRST_TEXT=rest[0]
+SECOND_TEXT=rest[1]
 
 
 if args.search:
@@ -47,7 +46,9 @@ MODEL_NAME="frida_guuf_bf16"
 
 def text2vector(text: str, prefix: str) -> list:
 
-    input_string = f"{prefix}:{text}"
+    # input_string = f"{prefix}: {text}"
+    input_string = text
+    print(f"input_string: {input_string}")
 
     resp = requests.post(
         "http://127.0.0.1:9931/embeddings",
