@@ -1,21 +1,37 @@
 #!.venv/bin/python
+
+import argparse
+from argparse import ArgumentError
 import requests
 import sys
 import math
 from sentence_transformers.util import cos_sim
 
 
+# parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
+# parser.add_argument("--prefix", action='store_true', type=bool, default=False, dest="use_prefix", help="Использовать префиксы (search_document, search_query)")
+# args = parser.parse_args()
+#
+# use_prefix = args.use_prefix
+
+DOCUMENT_PREFIX="search_document"
+QUERY_PREFIX="search_query"
+
 HOST="127.0.0.1"
 PORT=9931
 BASE_URL = f"http://{HOST}:{PORT}/v1"
 MODEL_NAME="frida_guuf_bf16"
 
-def text2vector(text: str) -> list:
+
+def text2vector(text: str, prefix: str) -> list:
+    input_string = f"{prefix}:{text}"
+    print(input_string)
+
     resp = requests.post(
         "http://127.0.0.1:9931/embeddings",
         json={
             "model": MODEL_NAME,
-            "input": text,
+            "input": input_string,
             "encoding_format": "float",
         },
         timeout=120,
@@ -60,9 +76,10 @@ for first in range(len(text_list) - 1):
 
         first_text = text_list[first]
         second_text = text_list[second]
+        # print(f'{first}: {first_text} -- {second}: {second_text}')
 
-        first_vector = text2vector(first_text)
-        second_vector = text2vector(second_text)
+        first_vector = text2vector(first_text, DOCUMENT_PREFIX)
+        second_vector = text2vector(second_text, QUERY_PREFIX)
 
         norm_first_vector = l2_normalize(first_vector)
         norm_second_vector = l2_normalize(second_vector)
