@@ -3,7 +3,8 @@ import requests
 import numpy as np
 
 LLAMA_HOST = "http://localhost:9931"
-MODEL_NAME = "FRIDA"
+# MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0"
+MODEL_NAME = "Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M"
 
 URL = f"{LLAMA_HOST}/v1/embeddings"
 
