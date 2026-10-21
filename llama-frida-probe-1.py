@@ -58,6 +58,22 @@ inputs = [
 ]
 size = int(len(inputs)/2)
 
-embeddings = normalize(np.array([get_embedding(text) for text in inputs]))
-sim_scores = cosine_diag_similarity(embeddings[:size], embeddings[size:])
-print(sim_scores.tolist())
+# embeddings = normalize(np.array([get_embedding(text) for text in inputs]))
+# sim_scores = cosine_diag_similarity(embeddings[:size], embeddings[size:])
+# print(sim_scores.tolist())
+
+
+text1 = "qwerty"
+text2 = "5"
+
+p_text1 = f"paraphrase: {text1}"
+p_text2 = f"paraphrase: {text2}"
+
+vec1 = normalize(get_embedding(text1))
+vec2 = normalize(get_embedding(text2))
+
+p_vec1 = normalize(get_embedding(p_text1))
+p_vec2 = normalize(get_embedding(p_text2))
+
+print(f"сходство между '{text1}' и '{text2}': {cosine_diag_similarity(vec1, vec2)}")
+print(f"сходство между '{p_text1}' и '{p_text2}': {cosine_diag_similarity(p_vec1, p_vec2)}")
