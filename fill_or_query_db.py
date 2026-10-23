@@ -32,10 +32,9 @@ TXT_DIR_PATH: Path
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument("-l", "--list", action='store_true', help="Вывести список доступных моделей")
-group.add_argument("-f", "--fill", action='store_true', help="Путь к каталогу с txt файлами")
+group.add_argument("--load-from", dest="dir", type=str, help="Путь к каталогу с txt файлами")
 group.add_argument("-q", "--query", type=str, help="Текст запроса к БД")
 
-parser.add_argument("-d", "--dir", type=str, required=False, help="Каталог с txt-файлами (используется при наполнении БД)")
 parser.add_argument("-m", "--model", type=str, required=False, help="Название модели")
 parser.add_argument("-c", "--count", type=int, required=False, default=DEFAULT_RESULTS_COUNT, help=f"Количество результатов поиска (по умолчанию: {DEFAULT_RESULTS_COUNT})")
 args = parser.parse_args()
@@ -141,6 +140,6 @@ def prepare_db_dir():
 if args.list:
     list_models_on_server()
     exit(0)
-elif args.fill:
+elif args.dir:
     fill_database()
     exit(0)
