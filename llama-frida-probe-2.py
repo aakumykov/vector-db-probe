@@ -1,12 +1,16 @@
 #!.venv/bin/python
+import sys
 
 import requests
+from pygments.styles import paraiso_dark
 from sentence_transformers.util import cos_sim
 import math
 import argparse
 
 
-MODEL_NAME = "evilfreelancer/FRIDA-GGUF:BF16"
+# MODEL_NAME = "evilfreelancer/FRIDA-GGUF:BF16"
+# MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0"
+MODEL_NAME = "Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M"
 URL = "http://localhost:9931/v1/embeddings"
 
 
@@ -19,9 +23,12 @@ def l2_normalize(vector: list[float]) -> list[float]:
 
 
 def text2vector(text: str) -> list[float]:
+
+    print(f"text2vector: {text}")
+
     payload = {
         "model": MODEL_NAME,
-        "input": "ваш текст для получения эмбеддинга"
+        "input": text
     }
 
     # Отправляем POST-запрос. Параметр json= автоматически добавляет заголовок Content-Type: application/json
@@ -39,12 +46,28 @@ def text2vector(text: str) -> list[float]:
     return embedding
 
 
-parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
+parser = argparse.ArgumentParser(description="Векторное сходство двух текстов")
+parser.add_argument("-1", "--first", type=str, required=False, help="Первый текст")
+parser.add_argument("-2", "--second", type=str, required=False, help="Вторй текст")
 args, rest = parser.parse_known_args()
 
 
-FIRST_TEXT=rest[0]
-SECOND_TEXT=rest[1]
+FIRST_TEXT=""
+SECOND_TEXT=""
+
+if args.first:
+    FIRST_TEXT = args.first
+
+if args.second:
+    SECOND_TEXT = args.second
+
+if not args.first and not args.second:
+    FIRST_TEXT=rest[0]
+    SECOND_TEXT=rest[1]
+
+if not FIRST_TEXT and not SECOND_TEXT:
+    parser.print_help()
+    sys.exit(1)
 
 
 first_vector = text2vector(FIRST_TEXT)
