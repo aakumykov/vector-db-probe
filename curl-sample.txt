@@ -1,0 +1,1 @@
+curl http://localhost:9931/v1/embeddings -d '{ "model": "FRIDA", "input": "ваш текст для получения эмбеддинга" }'
