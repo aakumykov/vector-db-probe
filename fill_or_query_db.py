@@ -14,25 +14,32 @@ from pathlib import Path
 
 import chromadb
 from chromadb import ClientAPI
-from huggingface_hub import login
-from sentence_transformers import SentenceTransformer
+
 
 SERVER_HOST="localhost"
 SERVER_PORT=9931
 QUERY_PATH="/v1/embeddings"
 MODELS_PATH="/v1/models"
+URL_BASE = f"http://{SERVER_HOST}:{SERVER_PORT}"
+MODELS_URL = f"{URL_BASE}{MODELS_PATH}"
+EMB_URL = f"{URL_BASE}{QUERY_PATH}"
+
 DEFAULT_RESULTS_COUNT=5
 
 DB_PATH="db"
-DB_CLIENT: ClientAPI
-MODEL_NAME: str
 COLLECTION_NAME: str
+DB_CLIENT: ClientAPI
+DB_COLLECTION: Any
+
+MODEL_NAME: str
+
 TXT_DIR_PATH: Path
+
 
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument("-l", "--list", action='store_true', help="Вывести список доступных моделей")
-group.add_argument("--load-from", dest="dir", type=str, help="Путь к каталогу с txt файлами")
+group.add_argument("--load", dest="dir", type=str, help="Путь к каталогу с txt файлами")
 group.add_argument("-q", "--query", type=str, help="Текст запроса к БД")
 
 parser.add_argument("-m", "--model", type=str, required=False, help="Название модели")
@@ -43,9 +50,9 @@ args = parser.parse_args()
 def log_d(text: str):
     print(text)
 
+
 def list_models_on_server():
-    url = f"http://{SERVER_HOST}:{SERVER_PORT}{MODELS_PATH}"
-    response = requests.get(url)
+    response = requests.get(MODELS_URL)
     response.raise_for_status()
     model_ids = [model["id"] for model in response.json()["data"]]
     print(f"===== Models on {SERVER_HOST}: =====")
@@ -72,7 +79,12 @@ def fill_database():
 def fill_db_real():
     prepare_db_dir()
     prepare_db_client()
+    prepare_db_collection()
     load_text_to_database()
+
+
+def prepare_db_collection():
+    DB_COLLECTION = DB_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
 
 
 def load_text_to_database():
@@ -87,10 +99,32 @@ def load_text_to_database():
         print(f"'{TXT_DIR_PATH}' not exists or not a dir")
         exit(1)
 
-    load_text_to_database_real()
+    texts, ids, metadatas = get_text_data_from_folder()
+    load_text_to_database_real(texts, ids, metadatas)
 
 
-def load_text_to_database_real():
+def load_text_to_database_real(texts, ids, metadatas):
+
+    embeddings = list()
+
+    for i, text in enumerate(texts):
+        # print(f"{i}) len: {len(text)}, metadata: {metadatas[i]['source']}, id: {ids[i]}")
+        emb = text2vector(text)
+        embeddings.append(emb)
+        print(f"{i}) {text[:25]} {emb[:3]}")
+        
+    # DB_COLLECTION.upsert(
+    #         ids=ids,
+    #         embeddings=embeddings,
+    #         documents=texts,
+    #         metadatas=metadatas
+    # )
+
+
+def get_text_data_from_folder():
+    """
+    @return [textx], [ids], [metadatas]
+    """
 
     txt_files = list(TXT_DIR_PATH.rglob("*.txt"))
 
@@ -123,9 +157,26 @@ def load_text_to_database_real():
     return texts, ids, metadatas
 
 
+def text2vector(text: str) -> list[float]:
+
+    payload = {
+        "model": MODEL_NAME,
+        "input": text
+    }
+
+    response = requests.post(EMB_URL, json=payload)
+    response.raise_for_status()
+    result = response.json()
+    embedding = result["data"][0]["embedding"]
+
+    return embedding
+
+
+
 def prepare_db_client():
     global DB_CLIENT
     DB_CLIENT = chromadb.PersistentClient(path=DB_PATH)
+    pass
 
 
 def prepare_db_dir():
