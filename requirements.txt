@@ -1,6 +1,2 @@
-beautifulsoup4
-sentence-transformers
 chromadb
-
-huggingface-hub
 requests
