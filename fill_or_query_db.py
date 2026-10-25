@@ -60,11 +60,11 @@ def list_models_on_server():
         print(m)
 
 
-def fill_database():
+def check_model_argument():
     if not args.model:
-        print("He yka3aHo umR moDejlu")
-        exit(1)
-
+            print("He yka3aHo umR moDejlu")
+            exit(1)
+    
     global MODEL_NAME
     MODEL_NAME = args.model
     log_d(f"MODEL_NAME: {MODEL_NAME}")
@@ -73,18 +73,22 @@ def fill_database():
     COLLECTION_NAME = re.sub("[^0-9a-zA-Z]+", "_", MODEL_NAME)
     log_d(f"COLLECTION_NAME: {COLLECTION_NAME}")
 
-    fill_db_real()
+
+def fill_database():
+    check_model_argument()
+    prepare_db()
+    load_text_to_database()
 
 
-def fill_db_real():
+def prepare_db():
     prepare_db_dir()
     prepare_db_client()
     prepare_db_collection()
-    load_text_to_database()
 
 
 def prepare_db_collection():
     global DB_COLLECTION
+    global COLLECTION_NAME
     DB_COLLECTION = DB_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
 
 
@@ -208,9 +212,34 @@ def prepare_db_dir():
         exit(1)
 
 
+def query_to_database(query_text: str):
+    check_model_argument()
+    prepare_db()
+    query_to_database_real(query_text)
+
+
+def query_to_database_real(query_text: str):
+    query_vector = text2vector([query_text])[0]
+
+    results = DB_COLLECTION.query(
+        query_embeddings=query_vector,
+        n_results=args.count
+    )
+
+    for i, (doc, meta) in enumerate(zip(results['documents'][0], results['metadatas'][0])):
+        distance = results['distances'][0][i]
+        # Красиво обрезаем длинный текст для вывода
+        preview = doc[:200].replace('\n', ' ') + "..." if len(doc) > 200 else doc.replace('\n', ' ')
+        print(f"[{i+1}] Файл: {meta['source']} (Дистанция: {distance:.4f})")
+        print(f"    Текст: {preview}\n")
+
+
 if args.list:
     list_models_on_server()
     exit(0)
 elif args.dir:
     fill_database()
+    exit(0)
+elif args.query:
+    query_to_database(args.query)
     exit(0)
