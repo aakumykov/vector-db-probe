@@ -100,26 +100,31 @@ def load_text_to_database():
         exit(1)
 
     texts, ids, metadatas = get_text_data_from_folder()
-    load_text_to_database_real(texts, ids, metadatas)
+    load_text_to_database_chunked(texts, ids, metadatas)
 
 
-def load_text_to_database_real(texts, ids, metadatas):
+def load_text_to_database_chunked(texts, ids, metadatas, batch_size: int = 10):
 
-    embeddings = list()
+    for i in range(0, len(texts), batch_size):
 
-    for i, text in enumerate(texts):
-        # print(f"{i}) len: {len(text)}, metadata: {metadatas[i]['source']}, id: {ids[i]}")
-        emb = text2vector(text)
-        embeddings.append(emb)
-        print(f"{i}) {text[:25]} {emb[:3]}")
+        texts_chunk = texts[i, i+batch_size]
+        ids_chunk = ids[i, i+batch_size]
+        metadatas_chunk = metadatas[i, i+batch_size]
         
-    # DB_COLLECTION.upsert(
-    #         ids=ids,
-    #         embeddings=embeddings,
-    #         documents=texts,
-    #         metadatas=metadatas
-    # )
+        emb_chunk = list2vectors(texts_chunk)
 
+        store_data_in_database(emb_chunk, ids_chunk, metadatas_chunk, texts_chunk)
+
+
+def store_data_in_database(embeddings: list[float], ids: list[str], metadatas: dict, texts: list[str]):
+
+    DB_COLLECTION.upsert(
+            ids=ids,
+            embeddings=embeddings,
+            documents=texts,
+            metadatas=metadatas
+    )
+    
 
 def get_text_data_from_folder():
     """
@@ -157,11 +162,21 @@ def get_text_data_from_folder():
     return texts, ids, metadatas
 
 
-def text2vector(text: str) -> list[float]:
+def list2vectors(text_list: list[str]) -> list[list[float]]:
+
+    result = text2vector(text_list)
+
+    # гарантируем порядок, совпадающий с порядком входных строк
+    items = sorted(result.json()["data"], key=lambda x: x["index"])
+    
+    return [item["embedding"] for item in items]
+
+
+def text2vector(input_text_or_texts) -> list[float]:
 
     payload = {
         "model": MODEL_NAME,
-        "input": text
+        "input": input_text_or_texts
     }
 
     response = requests.post(EMB_URL, json=payload)
