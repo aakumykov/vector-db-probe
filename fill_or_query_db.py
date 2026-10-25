@@ -78,12 +78,13 @@ def fill_database():
 
 def fill_db_real():
     prepare_db_dir()
-    # prepare_db_client()
-    # prepare_db_collection()
+    prepare_db_client()
+    prepare_db_collection()
     load_text_to_database()
 
 
 def prepare_db_collection():
+    global DB_COLLECTION
     DB_COLLECTION = DB_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
 
 
@@ -100,13 +101,13 @@ def load_text_to_database():
         exit(1)
 
     texts, ids, metadatas = get_text_data_from_folder()
-    load_text_to_database_chunked(texts, ids, metadatas)
+    save_text_to_database_chunked(texts, ids, metadatas)
 
 
-def load_text_to_database_chunked(
+def save_text_to_database_chunked(
         texts: list[str], 
         ids: list[str], 
-        metadatas: list[str], 
+        metadatas: list[dict[str,str]], 
         batch_size: int = 10
 ):
     for i in range(0, len(texts), batch_size):
@@ -117,26 +118,31 @@ def load_text_to_database_chunked(
         chink_of_ids = ids[slice_start:slice_end]
         chink_of_metadatas = metadatas[slice_start:slice_end]
         
-        emb_chunk = text2vector(chink_of_texts)
-        print(len(emb_chunk))
+        chunk_of_vectors = text2vector(chink_of_texts)
 
-        # store_data_in_database(emb_chunk, chink_of_ids, chink_of_metadatas, chink_of_texts)
+        store_data_in_database(
+            chunk_of_vectors, 
+            chink_of_ids, 
+            chink_of_metadatas, 
+            chink_of_texts
+        )
 
 
-def store_data_in_database(embeddings: list[float], ids: list[str], metadatas: dict, texts: list[str]):
-
+def store_data_in_database(
+        vectors: list[list[float]], 
+        ids: list[str], 
+        metadatas: list[dict[str,str]], 
+        texts: list[str]
+):
     DB_COLLECTION.upsert(
             ids=ids,
-            embeddings=embeddings,
+            embeddings=vectors,
             documents=texts,
             metadatas=metadatas
     )
     
 
-def get_text_data_from_folder():
-    """
-    @return [textx], [ids], [metadatas]
-    """
+def get_text_data_from_folder() -> tuple[list[str], list[str], list[dict[str,str]]]:
 
     txt_files = list(TXT_DIR_PATH.rglob("*.txt"))
 
@@ -144,9 +150,9 @@ def get_text_data_from_folder():
         print(f"В каталоге '{TXT_DIR_PATH}' не найдено ни одного .txt файла.")
         exit(1)
 
-    texts = []
-    ids = []
-    metadatas = []
+    texts: list[str] = []
+    ids: list[str] = []
+    metadatas: list[dict] = []
 
     for file in txt_files:
         try:
