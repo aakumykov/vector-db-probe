@@ -21,12 +21,28 @@
             "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 --load txt"
         },
         {
+            "name": "Load with Qwen3-Embedding-4B-GGUF:Q4_K_M",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M --load txt"
+        },
+        {
             "name": "Load with USER-bge-m3-Q8_0-GGUF:Q8_0",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "args": "-m alela32/USER-bge-m3-Q8_0-GGUF:Q8_0 --load txt"
+        },
+        {
+            "name": "Запрос-1",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m USER-bge-m3-Q8_0-GGUF:Q8_0 -q 'горючее вещество'"
         }
     ]
 }
