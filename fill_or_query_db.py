@@ -13,7 +13,7 @@ from os.path import expanduser
 from pathlib import Path
 
 import chromadb
-from chromadb import ClientAPI
+# from chromadb import ClientAPI
 
 
 SERVER_HOST="localhost"
@@ -28,7 +28,7 @@ DEFAULT_RESULTS_COUNT=5
 
 DB_PATH="db"
 COLLECTION_NAME: str
-DB_CLIENT: ClientAPI
+DB_CLIENT: Any #: ClientAPI
 DB_COLLECTION: Any
 
 MODEL_NAME: str
@@ -78,8 +78,8 @@ def fill_database():
 
 def fill_db_real():
     prepare_db_dir()
-    prepare_db_client()
-    prepare_db_collection()
+    # prepare_db_client()
+    # prepare_db_collection()
     load_text_to_database()
 
 
@@ -103,17 +103,24 @@ def load_text_to_database():
     load_text_to_database_chunked(texts, ids, metadatas)
 
 
-def load_text_to_database_chunked(texts, ids, metadatas, batch_size: int = 10):
-
+def load_text_to_database_chunked(
+        texts: list[str], 
+        ids: list[str], 
+        metadatas: list[str], 
+        batch_size: int = 10
+):
     for i in range(0, len(texts), batch_size):
+        slice_start = i
+        slice_end = i+batch_size
 
-        texts_chunk = texts[i, i+batch_size]
-        ids_chunk = ids[i, i+batch_size]
-        metadatas_chunk = metadatas[i, i+batch_size]
+        chink_of_texts = texts[slice_start:slice_end]
+        chink_of_ids = ids[slice_start:slice_end]
+        chink_of_metadatas = metadatas[slice_start:slice_end]
         
-        emb_chunk = list2vectors(texts_chunk)
+        emb_chunk = text2vector(chink_of_texts)
+        print(len(emb_chunk))
 
-        store_data_in_database(emb_chunk, ids_chunk, metadatas_chunk, texts_chunk)
+        # store_data_in_database(emb_chunk, chink_of_ids, chink_of_metadatas, chink_of_texts)
 
 
 def store_data_in_database(embeddings: list[float], ids: list[str], metadatas: dict, texts: list[str]):
@@ -162,17 +169,7 @@ def get_text_data_from_folder():
     return texts, ids, metadatas
 
 
-def list2vectors(text_list: list[str]) -> list[list[float]]:
-
-    result = text2vector(text_list)
-
-    # гарантируем порядок, совпадающий с порядком входных строк
-    items = sorted(result.json()["data"], key=lambda x: x["index"])
-    
-    return [item["embedding"] for item in items]
-
-
-def text2vector(input_text_or_texts) -> list[float]:
+def text2vector(input_text_or_texts) -> list[list[float]]:
 
     payload = {
         "model": MODEL_NAME,
@@ -182,10 +179,12 @@ def text2vector(input_text_or_texts) -> list[float]:
     response = requests.post(EMB_URL, json=payload)
     response.raise_for_status()
     result = response.json()
-    embedding = result["data"][0]["embedding"]
+    result_data = result["data"]
 
-    return embedding
-
+    # гарантируем порядок, совпадающий с порядком входных строк
+    items = sorted(result_data, key=lambda x: x["index"])
+    
+    return [item["embedding"] for item in items]
 
 
 def prepare_db_client():
