@@ -15,6 +15,8 @@ from pathlib import Path
 import chromadb
 from chromadb import ClientAPI
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 
 SERVER_HOST="localhost"
 SERVER_PORT=9931
@@ -128,7 +130,7 @@ def save_text_to_database_chunked(
         chink_of_ids = ids[slice_start:slice_end]
         chink_of_metadatas = metadatas[slice_start:slice_end]
         
-        chunk_of_vectors = list_of_texts_2_vectors(chink_of_texts)
+        chunk_of_vectors = text_list_2_vectors_list(chink_of_texts)
 
         store_data_in_database(
             chunk_of_vectors, 
@@ -185,11 +187,13 @@ def get_text_data_from_folder() -> tuple[list[str], list[str], list[dict[str,str
     return texts, ids, metadatas
 
 
-def list_of_texts_2_vectors(input_text_or_texts) -> list[list[float]]:
+def text_list_2_vectors_list(text_list) -> list[list[float]]:
+
+    list_of_chinked_text = split_long_text_in_list(text_list)
 
     payload = {
         "model": MODEL_NAME,
-        "input": input_text_or_texts
+        "input": list_of_chinked_text
     }
 
     response = requests.post(EMB_URL, json=payload)
@@ -225,7 +229,7 @@ def query_to_database(query_text: str):
 
 
 def query_to_database_real(query_text: str):
-    query_vector = list_of_texts_2_vectors([query_text])[0]
+    query_vector = text_list_2_vectors_list([query_text])[0]
 
     results = DB_COLLECTION.query(
         query_embeddings=query_vector,
@@ -261,6 +265,25 @@ def list_collections():
     print("=== Коллекции в БД ===")
     for coll in DB_CLIENT.list_collections():
         print(coll.name)
+
+
+def split_text_to_chunks(input_text: str, chink_max_size: int = 512, chunk_overlap_percent: int = 30) -> list[str]:
+
+    overlap_len = round(chunk_overlap_percent / 100.0 * chink_max_size)
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chink_max_size,
+        chunk_overlap=overlap_len,
+        length_function=len,
+        separators=["\n\n", "\n", ". ", " ", ""],
+        is_separator_regex=False
+    )
+
+    return text_splitter.split_text(input_text)
+
+
+def split_long_text_in_list(text_list: list[str]) -> list[str]:
+    return [chunk for text in text_list for chunk in split_text_to_chunks(text)]
 
 
 
