@@ -1,3 +1,4 @@
 chromadb
 requests
 langchain
+langchain-text-splitters
