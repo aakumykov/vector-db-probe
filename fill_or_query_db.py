@@ -13,7 +13,7 @@ from os.path import expanduser
 from pathlib import Path
 
 import chromadb
-# from chromadb import ClientAPI
+from chromadb import ClientAPI
 
 
 SERVER_HOST="localhost"
@@ -28,7 +28,7 @@ DEFAULT_RESULTS_COUNT=5
 
 DB_PATH="db"
 COLLECTION_NAME: str
-DB_CLIENT: Any #: ClientAPI
+DB_CLIENT: ClientAPI
 DB_COLLECTION: Any
 
 MODEL_NAME: str
@@ -38,9 +38,11 @@ TXT_DIR_PATH: Path
 
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument("-l", "--list", action='store_true', help="Вывести список доступных моделей")
+group.add_argument("-lm", "--list-models", action='store_true', dest="list_models", help="Вывести список доступных моделей")
+group.add_argument("-lc", "--list-collections", action='store_true', dest="list_collections", help="Вывести список коллекций из БД")
 group.add_argument("--load", dest="dir", type=str, help="Путь к каталогу с txt файлами")
 group.add_argument("-q", "--query", type=str, help="Текст запроса к БД")
+group.add_argument("-d", "--delete", type=str, help="Удалить коллекцию (вместе с данными) из БД")
 
 parser.add_argument("-m", "--model", type=str, required=False, help="Название модели")
 parser.add_argument("-c", "--count", type=int, required=False, default=DEFAULT_RESULTS_COUNT, help=f"Количество результатов поиска (по умолчанию: {DEFAULT_RESULTS_COUNT})")
@@ -49,6 +51,10 @@ args = parser.parse_args()
 
 def log_d(text: str):
     print(text)
+
+
+def log_w(text: str):
+    print(f"ПРЕДУПРЕЖДЕНИЕ: {text}")
 
 
 def list_models_on_server():
@@ -122,7 +128,7 @@ def save_text_to_database_chunked(
         chink_of_ids = ids[slice_start:slice_end]
         chink_of_metadatas = metadatas[slice_start:slice_end]
         
-        chunk_of_vectors = text2vector(chink_of_texts)
+        chunk_of_vectors = list_of_texts_2_vectors(chink_of_texts)
 
         store_data_in_database(
             chunk_of_vectors, 
@@ -179,7 +185,7 @@ def get_text_data_from_folder() -> tuple[list[str], list[str], list[dict[str,str
     return texts, ids, metadatas
 
 
-def text2vector(input_text_or_texts) -> list[list[float]]:
+def list_of_texts_2_vectors(input_text_or_texts) -> list[list[float]]:
 
     payload = {
         "model": MODEL_NAME,
@@ -219,7 +225,7 @@ def query_to_database(query_text: str):
 
 
 def query_to_database_real(query_text: str):
-    query_vector = text2vector([query_text])[0]
+    query_vector = list_of_texts_2_vectors([query_text])[0]
 
     results = DB_COLLECTION.query(
         query_embeddings=query_vector,
@@ -234,12 +240,42 @@ def query_to_database_real(query_text: str):
         print(f"    Текст: {preview}\n")
 
 
-if args.list:
+
+def delete_collection():
+    prepare_db_client()
+
+    name = args.delete
+    log_d(f"Удаление коллекции {name}")
+    
+    global DB_CLIENT
+    if DB_CLIENT.list_collections().count(name) > 0:
+        DB_CLIENT.delete_collection(name)
+        log_d(f"Коллекция '{name}' удалена")
+    else:
+        log_w(f"Нет коллекции '{name}'")
+
+
+def list_collections():
+    prepare_db_client()
+
+    print("=== Коллекции в БД ===")
+    for coll in DB_CLIENT.list_collections():
+        print(coll.name)
+
+
+
+if args.list_models:
     list_models_on_server()
+    exit(0)
+elif args.list_collections:
+    list_collections()
     exit(0)
 elif args.dir:
     fill_database()
     exit(0)
 elif args.query:
     query_to_database(args.query)
+    exit(0)
+elif args.delete:
+    delete_collection()
     exit(0)
