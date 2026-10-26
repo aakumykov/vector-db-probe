@@ -112,8 +112,9 @@ def load_text_to_database():
         print(f"'{TXT_DIR_PATH}' not exists or not a dir")
         exit(1)
 
-    texts, ids, metadatas = get_text_data_from_folder()
-    save_text_to_database_chunked(texts, ids, metadatas)
+    texts, file_names = get_texts_from_folder()
+    chinked_texts, file_names_of_chinks = split_text_to_chunks
+    save_text_to_database_chunked(texts, metadatas)
 
 
 def save_text_to_database_chunked(
@@ -154,7 +155,11 @@ def store_data_in_database(
     )
     
 
-def get_text_data_from_folder() -> tuple[list[str], list[str], list[dict[str,str]]]:
+def get_texts_from_folder() -> tuple[list[str], list[dict[str,str]]]:
+    """
+    Returns:
+        tuple[list[текст из файлов], list[имена файлов]]: _description_
+    """
 
     txt_files = list(TXT_DIR_PATH.rglob("*.txt"))
 
@@ -163,8 +168,7 @@ def get_text_data_from_folder() -> tuple[list[str], list[str], list[dict[str,str
         exit(1)
 
     texts: list[str] = []
-    ids: list[str] = []
-    metadatas: list[dict] = []
+    metadatas: list[str] = []
 
     for file in txt_files:
         try:
@@ -177,14 +181,12 @@ def get_text_data_from_folder() -> tuple[list[str], list[str], list[dict[str,str
 
             texts.append(content)
 
-            file_id = str(file.relative_to(TXT_DIR_PATH)).replace('/', '_').replace('\\', '_')
-            ids.append(file_id)
-            metadatas.append({"source": str(file)})
+            metadatas.append(file.name)
 
         except Exception as e:
             print(f"Предупреждение: Не удалось прочитать файл {file.name}. Ошибка: {e}")
 
-    return texts, ids, metadatas
+    return texts, metadatas
 
 
 def text_list_2_vectors_list(text_list) -> list[list[float]]:
@@ -267,7 +269,11 @@ def list_collections():
         print(coll.name)
 
 
-def split_text_to_chunks(input_text: str, chink_max_size: int = 512, chunk_overlap_percent: int = 30) -> list[str]:
+def split_text_to_chunks(
+        input_text: str, 
+        chink_max_size: int = 512, 
+        chunk_overlap_percent: int = 30
+) -> list[str]:
 
     overlap_len = round(chunk_overlap_percent / 100.0 * chink_max_size)
 
@@ -282,8 +288,17 @@ def split_text_to_chunks(input_text: str, chink_max_size: int = 512, chunk_overl
     return text_splitter.split_text(input_text)
 
 
-def split_long_text_in_list(text_list: list[str]) -> list[str]:
-    return [chunk for text in text_list for chunk in split_text_to_chunks(text)]
+def split_long_text_in_list(text_list: list[str], file_names_list: list[str]) -> tuple[list[str], list[str]]:
+
+    chunk_list: list[str] = []
+    name_list: list[str] = []
+
+    for i, text in enumerate(text_list):
+        for chunk in split_text_to_chunks(text):
+            chunk_list.append(chunk_list)
+            name_list.append(file_names_list[i])
+            
+    return chunk_list, name_list
 
 
 
