@@ -42,8 +42,8 @@ KEY_TEXT = "TEXT"
 KEY_FILE_NAME = "FILE_NAME"
 KEY_ID = "ID"
 
-DEFAULT_TEXT_CHUNK_SIZE = 512
-
+DEFAULT_TEXT_CHUNK_SIZE = 8192
+DEFAULT_BATCH_SIZE = 10 # Размер пакета для обработки моделью
 
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
@@ -127,7 +127,7 @@ def load_text_to_database():
 
 def save_text_to_database_chunked(
         texts_with_data: list[dict[str,str]],
-        batch_size: int = 10
+        batch_size: int = DEFAULT_BATCH_SIZE
 ):
     for i in range(0, len(texts_with_data), batch_size):
         slice_start = i
@@ -239,11 +239,9 @@ def text2vector(input_text: str) -> list[float]:
 
 def text_list_2_vectors_list(text_list: list[str]) -> list[list[float]]:
 
-    list_of_chunked_text = split_long_text_in_list(text_list)
-
     payload = {
         "model": MODEL_NAME,
-        "input": list_of_chunked_text
+        "input": text_list
     }
 
     response = requests.post(EMB_URL, json=payload)
