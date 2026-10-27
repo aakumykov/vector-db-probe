@@ -166,7 +166,7 @@ def store_data_in_database(
     )
     
 
-def get_texts_from_folder(chunk_max_size: int = 512) -> list[dict[str,str]]:
+def get_texts_from_folder(chunk_max_size: int = DEFAULT_TEXT_CHUNK_SIZE) -> list[dict[str,str]]:
     """
     Returns:
         [ { "file_text: "string", "file_name": "string", "id": "string" } ] 
