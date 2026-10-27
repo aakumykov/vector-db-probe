@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Список моделей",
             "type": "debugpy",
@@ -21,7 +22,7 @@
             "args": "-lc"
         },
         {
-            "name": "Load with Qwen3-Embedding-0.6B",
+            "name": "Загрузить с Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -29,7 +30,7 @@
             "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 --load txt"
         },
         {
-            "name": "Load with Qwen3-Embedding-4B-GGUF:Q4_K_M",
+            "name": "Загрузить с Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -37,12 +38,44 @@
             "args": "-m Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M --load txt"
         },
         {
-            "name": "Load with USER-bge-m3-Q8_0-GGUF:Q8_0",
+            "name": "Загрузить с Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M --load txt"
+        },
+        {
+            "name": "Загрузить с alela32/USER-bge-m3-Q8_0-GGUF:Q8_0",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "args": "-m alela32/USER-bge-m3-Q8_0-GGUF:Q8_0 --load txt"
+        },
+        {
+            "name": "Загрузить с evilfreelancer/FRIDA-GGUF:BF16",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m evilfreelancer/FRIDA-GGUF:BF16 --load txt"
+        },
+        {
+            "name": "Загрузить с evilfreelancer/FRIDA-GGUF:TQ2_0",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m evilfreelancer/FRIDA-GGUF:TQ2_0 --load txt"
+        },
+        {
+            "name": "Загрузить с gpustack/bge-m3-GGUF:Q4_K_M",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m gpustack/bge-m3-GGUF:Q4_K_M --load txt"
         },
         {
             "name": "Запрос 'горючее вещество' к USER-bge-m3-Q8_0-GGUF:Q8_0",
