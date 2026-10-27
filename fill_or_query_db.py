@@ -3,6 +3,7 @@
 import re
 from argparse import ArgumentError
 from typing import Any
+import shutil
 
 import requests
 import argparse
@@ -277,20 +278,32 @@ def query_to_database(query_text: str):
 
 
 def query_to_database_real(query_text: str):
-    query_vector = text2vector(query_text)
 
     results = DB_COLLECTION.query(
-        query_embeddings=query_vector,
+        query_embeddings=text2vector(query_text),
         n_results=args.count
     )
 
-    for i, (doc, meta) in enumerate(zip(results['documents'][0], results['metadatas'][0])):
+    zipped_data = zip(
+        results['documents'][0], 
+        results['metadatas'][0], 
+        results['distances'][0]
+    )
+
+    for i, (doc, meta, distance) in enumerate(zipped_data):
         distance = results['distances'][0][i]
-        # Красиво обрезаем длинный текст для вывода
-        preview = doc[:200].replace('\n', ' ') + "..." if len(doc) > 200 else doc.replace('\n', ' ')
-        print(f"[{i+1}] Файл: {meta['source']} (Дистанция: {distance:.4f})")
+        preview = wrap_string_to_width(doc)
+        print(f"[{i+1}] Файл: {meta[KEY_FILE_NAME]} (Дистанция: {distance:.4f})")
         print(f"    Текст: {preview}\n")
 
+
+def wrap_string_to_width(text: str, width: int = None, delimiter: str = "\n") -> list[str]:
+    if not width:
+        actual_width = shutil.get_terminal_size().columns
+    else:
+        actual_width = width
+
+    return delimiter.join(split_text_to_chunks(text, actual_width, 0))
 
 
 def delete_collection():
@@ -349,20 +362,26 @@ def split_long_text_in_list(text_list: list[str]) -> list[str]:
 if args.list_models:
     list_models_on_server()
     exit(0)
+
 elif args.list_collections:
     list_collections()
     exit(0)
+
 elif args.dir:
     fill_database()
     exit(0)
+
 elif args.query:
     query_to_database(args.query)
     exit(0)
+
 elif args.delete:
     delete_collection()
     exit(0)
+
 elif args.encode:
     encode_string(args.encode)
     exit(0)
+
 else:
     raise Exception(f"Неизвестный режим работы {sys.argv}")
