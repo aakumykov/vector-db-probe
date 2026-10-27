@@ -37,6 +37,11 @@ MODEL_NAME: str
 
 TXT_DIR_PATH: Path
 
+# Константы
+KEY_TEXT = "TEXT"
+KEY_FILE_NAME = "FILE_NAME"
+KEY_ID = "ID"
+KEY_METADATA = "METADATA"
 
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
@@ -112,25 +117,25 @@ def load_text_to_database():
         print(f"'{TXT_DIR_PATH}' not exists or not a dir")
         exit(1)
 
-    texts, file_names = get_texts_from_folder()
-    chinked_texts, file_names_of_chinks = split_text_to_chunks
-    save_text_to_database_chunked(texts, metadatas)
+    texts_with_data = get_texts_from_folder()
+    
+    save_text_to_database_chunked(texts_with_data)
 
 
 def save_text_to_database_chunked(
-        texts: list[str], 
-        ids: list[str], 
-        metadatas: list[dict[str,str]], 
+        texts_with_data: list[dict[str,str]],
         batch_size: int = 10
 ):
-    for i in range(0, len(texts), batch_size):
+    for i in range(0, len(texts_with_data), batch_size):
         slice_start = i
         slice_end = i+batch_size
 
-        chink_of_texts = texts[slice_start:slice_end]
-        chink_of_ids = ids[slice_start:slice_end]
-        chink_of_metadatas = metadatas[slice_start:slice_end]
+        data_chunk = texts_with_data[slice_start:slice_end]
         
+        chink_of_texts = list(map(lambda item: item[KEY_TEXT], data_chunk))
+        chink_of_ids = list(map(lambda item: item[KEY_ID], data_chunk))
+        chink_of_metadatas = list(map(lambda item: {KEY_METADATA: item[KEY_FILE_NAME]}, data_chunk))
+
         chunk_of_vectors = text_list_2_vectors_list(chink_of_texts)
 
         store_data_in_database(
@@ -155,10 +160,10 @@ def store_data_in_database(
     )
     
 
-def get_texts_from_folder() -> tuple[list[str], list[dict[str,str]]]:
+def get_texts_from_folder() -> list[dict[str,str]]:
     """
     Returns:
-        tuple[list[текст из файлов], list[имена файлов]]: _description_
+        [ { "file_text: "string", "file_name": "string", "id": "string" } ] 
     """
 
     txt_files = list(TXT_DIR_PATH.rglob("*.txt"))
@@ -167,29 +172,35 @@ def get_texts_from_folder() -> tuple[list[str], list[dict[str,str]]]:
         print(f"В каталоге '{TXT_DIR_PATH}' не найдено ни одного .txt файла.")
         exit(1)
 
-    texts: list[str] = []
-    metadatas: list[str] = []
+    result = []
 
     for file in txt_files:
+        f_name = file.name
         try:
             with open(file, 'r', encoding='utf-8', errors='replace') as f:
-                content = f.read().strip()
+                text_content = f.read().strip()
 
-            if not content:
+            if not text_content:
                 print(f"Пропускаю пустой файл {file}")
                 continue
 
-            texts.append(content)
-
-            metadatas.append(file.name)
+            c = 0
+            for text_chunk in split_text_to_chunks(text_content):
+                chunk_id = f"{f_name}_{c}"
+                result.append({
+                    KEY_TEXT: text_chunk,
+                    KEY_FILE_NAME: file.name,
+                    KEY_ID: chunk_id
+                })
+                c+=1
 
         except Exception as e:
-            print(f"Предупреждение: Не удалось прочитать файл {file.name}. Ошибка: {e}")
+            print(f"Предупреждение: Не удалось прочитать файл {f_name}. Ошибка: {e}")
 
-    return texts, metadatas
+    return result
 
 
-def text_list_2_vectors_list(text_list) -> list[list[float]]:
+def text_list_2_vectors_list(text_list: list[str]) -> list[list[float]]:
 
     list_of_chinked_text = split_long_text_in_list(text_list)
 
@@ -288,17 +299,15 @@ def split_text_to_chunks(
     return text_splitter.split_text(input_text)
 
 
-def split_long_text_in_list(text_list: list[str], file_names_list: list[str]) -> tuple[list[str], list[str]]:
+def split_long_text_in_list(text_list: list[str]) -> list[str]:
 
     chunk_list: list[str] = []
-    name_list: list[str] = []
 
     for i, text in enumerate(text_list):
         for chunk in split_text_to_chunks(text):
-            chunk_list.append(chunk_list)
-            name_list.append(file_names_list[i])
+            chunk_list.append(chunk)
             
-    return chunk_list, name_list
+    return chunk_list
 
 
 
