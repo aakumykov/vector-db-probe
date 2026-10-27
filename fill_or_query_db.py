@@ -44,6 +44,7 @@ KEY_ID = "ID"
 
 DEFAULT_TEXT_CHUNK_SIZE = 512
 
+
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument("-lm", "--list-models", action='store_true', dest="list_models", help="Вывести список доступных моделей")
@@ -51,6 +52,7 @@ group.add_argument("-lc", "--list-collections", action='store_true', dest="list_
 group.add_argument("--load", dest="dir", type=str, help="Путь к каталогу с txt файлами")
 group.add_argument("-q", "--query", type=str, help="Текст запроса к БД")
 group.add_argument("-d", "--delete", type=str, help="Удалить коллекцию (вместе с данными) из БД")
+group.add_argument("-e", "--encode", type=str, help="Закодировать строку в вектор")
 
 parser.add_argument("-m", "--model", type=str, required=False, help="Название модели")
 parser.add_argument("-c", "--count", type=int, required=False, default=DEFAULT_RESULTS_COUNT, help=f"Количество результатов поиска (по умолчанию: {DEFAULT_RESULTS_COUNT})")
@@ -207,6 +209,34 @@ def get_texts_from_folder(chunk_max_size: int = 512) -> list[dict[str,str]]:
     return result
 
 
+def encode_string(text: str):
+    check_model_argument()
+    vec = text2vector(text)
+    print(f"Текст ({len(text)} символов): {text}")
+    print(f"Вектор ({len(vec)} значений):")
+    print(vec)
+
+
+def text2vector(input_text: str) -> list[float]:
+
+    payload = {
+        "model": MODEL_NAME,
+        "input": input_text
+    }
+
+    response = requests.post(
+        EMB_URL, 
+        json=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+
+    response.raise_for_status()
+    result = response.json()
+    result_data = result["data"][0]["embedding"]
+            
+    return result_data
+
+
 def text_list_2_vectors_list(text_list: list[str]) -> list[list[float]]:
 
     list_of_chunked_text = split_long_text_in_list(text_list)
@@ -249,7 +279,7 @@ def query_to_database(query_text: str):
 
 
 def query_to_database_real(query_text: str):
-    query_vector = text_list_2_vectors_list([query_text])[0]
+    query_vector = text2vector(query_text)
 
     results = DB_COLLECTION.query(
         query_embeddings=query_vector,
@@ -333,3 +363,8 @@ elif args.query:
 elif args.delete:
     delete_collection()
     exit(0)
+elif args.encode:
+    encode_string(args.encode)
+    exit(0)
+else:
+    raise Exception(f"Неизвестный режим работы {sys.argv}")
