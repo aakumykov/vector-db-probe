@@ -23,9 +23,12 @@ SERVER_HOST="localhost"
 SERVER_PORT=9931
 QUERY_PATH="/v1/embeddings"
 MODELS_PATH="/v1/models"
+CHAT_PATH="/v1/chat/completions"
 URL_BASE = f"http://{SERVER_HOST}:{SERVER_PORT}"
+
 MODELS_URL = f"{URL_BASE}{MODELS_PATH}"
 EMB_URL = f"{URL_BASE}{QUERY_PATH}"
+CHAT_URL = f"{URL_BASE}{CHAT_PATH}"
 
 DEFAULT_RESULTS_COUNT=5
 
@@ -46,17 +49,25 @@ KEY_ID = "ID"
 DEFAULT_TEXT_CHUNK_SIZE = 8192
 DEFAULT_BATCH_SIZE = 10 # Размер пакета для обработки моделью
 
+
+#
+# Настройка парсера аргументов
+#
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
+
 group = parser.add_mutually_exclusive_group(required=True)
+
 group.add_argument("-lm", "--list-models", action='store_true', dest="list_models", help="Вывести список доступных моделей")
 group.add_argument("-lc", "--list-collections", action='store_true', dest="list_collections", help="Вывести список коллекций из БД")
 group.add_argument("--load", dest="dir", type=str, help="Путь к каталогу с txt файлами")
 group.add_argument("-q", "--query", type=str, help="Текст запроса к БД")
 group.add_argument("-d", "--delete", type=str, help="Удалить коллекцию (вместе с данными) из БД")
 group.add_argument("-e", "--encode", type=str, help="Закодировать строку в вектор")
+group.add_argument("-a", "--ask", "--ask-model", dest="ask_model", type=str, help="Запрос к модели")
 
 parser.add_argument("-m", "--model", type=str, required=False, help="Название модели")
 parser.add_argument("-c", "--count", type=int, required=False, default=DEFAULT_RESULTS_COUNT, help=f"Количество результатов поиска (по умолчанию: {DEFAULT_RESULTS_COUNT})")
+
 args = parser.parse_args()
 
 
@@ -277,24 +288,31 @@ def query_to_database(query_text: str):
     query_to_database_real(query_text)
 
 
-def query_to_database_real(query_text: str):
-
+def get_result_from_db(query_text: str):
+    """
+    Returns:
+        zip object with: 'documents', 'metadatas', 'distances'
+    """
     results = DB_COLLECTION.query(
         query_embeddings=text2vector(query_text),
         n_results=args.count
     )
-
     zipped_data = zip(
         results['documents'][0], 
         results['metadatas'][0], 
         results['distances'][0]
     )
+    return zipped_data
+
+
+def query_to_database_real(query_text: str):
+
+    zipped_data = get_result_from_db(query_text)
 
     for i, (doc, meta, distance) in enumerate(zipped_data):
-        distance = results['distances'][0][i]
         preview = wrap_string_to_width(doc)
         print(f"[{i+1}] Файл: {meta[KEY_FILE_NAME]} (Дистанция: {distance:.4f})")
-        print(f"    Текст: {preview}\n")
+        print(f"Текст: {preview}\n")
 
 
 def wrap_string_to_width(text: str, width: int = None, delimiter: str = "\n") -> list[str]:
@@ -358,6 +376,65 @@ def split_long_text_in_list(text_list: list[str]) -> list[str]:
     return chunk_list
 
 
+def ask_model(query_text: str):
+
+    check_model_argument()
+    prepare_db()
+
+    context = prepare_query_context(query_text)
+    if "" == context:
+        print(f"По запросу 'query_text' получен пустой контекст поиска")
+        exit(1)
+
+    system_prompt = (
+        "Ты — полезный AI-ассистент. Отвечай на вопросы пользователя, "
+        "опираясь ИСКЛЮЧИТЕЛЬНО на предоставленный контекст. "
+        "Если ответа нет в контексте, так и скажи: 'В предоставленных данных нет ответа'."
+    )
+
+    user_prompt = f"КОНТЕКСТ:\n{context}\n\nВОПРОС: {query_text}"
+
+    payload = {
+        "model": MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "stream": False, # Отключаем потоковую выдачу для простоты парсинга
+        "options": {
+            "temperature": 0.1 # Низкая температура для более точных ответов по контексту
+        }
+    }
+
+    try:
+        response = requests.post(CHAT_URL, json=payload, timeout=3600)
+        response.raise_for_status()
+        
+        # Парсим ответ
+        result = response.json()
+        answer = result['message']['content']
+        return answer
+        
+    except requests.exceptions.RequestException as e:
+        return f"Ошибка при запросе к LLM: {e}"
+
+    pass
+
+
+def prepare_query_context(query_text: str) -> str:
+
+    db_results = get_result_from_db(query_text)
+
+    sorted_db_result = sorted(db_results, key=lambda x: x[2], reverse=True)
+    
+    texts = []
+    for doc, meta, distance in sorted_db_result:
+        texts.append(doc)
+
+    context = "\n\n---\n\n".join(texts)
+
+    return context.strip()
+
 
 if args.list_models:
     list_models_on_server()
@@ -373,6 +450,10 @@ elif args.dir:
 
 elif args.query:
     query_to_database(args.query)
+    exit(0)
+
+elif args.ask_model:
+    ask_model(args.ask_model)
     exit(0)
 
 elif args.delete:

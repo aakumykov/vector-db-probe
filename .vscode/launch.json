@@ -30,12 +30,20 @@
             "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 --load txt"
         },
         {
-            "name": "Запрос 'горючее вещество' к Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
+            "name": "Запрос к БД 'горючее вещество' с Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -q 'горючее вещество'"
+        },
+        {
+            "name": "Спросить о 'горючем веществе' модель unsloth/Qwen3.6-35B-A3B-GGUF",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m unsloth/Qwen3.6-35B-A3B-GGUF -a 'Связаны ли эти тексты с понятием \"горючее вещество\"'"
         },
         {
             "name": "Закодировать 'горючее вещество' в Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
