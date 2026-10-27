@@ -41,7 +41,8 @@ TXT_DIR_PATH: Path
 KEY_TEXT = "TEXT"
 KEY_FILE_NAME = "FILE_NAME"
 KEY_ID = "ID"
-KEY_METADATA = "METADATA"
+
+DEFAULT_TEXT_CHUNK_SIZE = 512
 
 parser = argparse.ArgumentParser(description="Создание векторной БД из txt файлов и семантический поиск.")
 group = parser.add_mutually_exclusive_group(required=True)
@@ -117,7 +118,7 @@ def load_text_to_database():
         print(f"'{TXT_DIR_PATH}' not exists or not a dir")
         exit(1)
 
-    texts_with_data = get_texts_from_folder()
+    texts_with_data = get_texts_from_folder(DEFAULT_TEXT_CHUNK_SIZE)
     
     save_text_to_database_chunked(texts_with_data)
 
@@ -132,17 +133,20 @@ def save_text_to_database_chunked(
 
         data_chunk = texts_with_data[slice_start:slice_end]
         
-        chink_of_texts = list(map(lambda item: item[KEY_TEXT], data_chunk))
-        chink_of_ids = list(map(lambda item: item[KEY_ID], data_chunk))
-        chink_of_metadatas = list(map(lambda item: {KEY_METADATA: item[KEY_FILE_NAME]}, data_chunk))
+        chunk_of_texts = list(map(lambda item: item[KEY_TEXT], data_chunk))
+        chunk_of_ids = list(map(lambda item: item[KEY_ID], data_chunk))
+        chunk_of_metadatas = list(map(lambda item: {KEY_FILE_NAME: item[KEY_FILE_NAME]}, data_chunk))
 
-        chunk_of_vectors = text_list_2_vectors_list(chink_of_texts)
+        for i, text in enumerate(chunk_of_texts):
+            print(f"  сохраняю текст [{len(text)} симв., {chunk_of_metadatas[i][KEY_FILE_NAME]}] '{text[:50]}'")
+
+        chunk_of_vectors = text_list_2_vectors_list(chunk_of_texts)
 
         store_data_in_database(
             chunk_of_vectors, 
-            chink_of_ids, 
-            chink_of_metadatas, 
-            chink_of_texts
+            chunk_of_ids, 
+            chunk_of_metadatas, 
+            chunk_of_texts
         )
 
 
@@ -160,7 +164,7 @@ def store_data_in_database(
     )
     
 
-def get_texts_from_folder() -> list[dict[str,str]]:
+def get_texts_from_folder(chunk_max_size: int = 512) -> list[dict[str,str]]:
     """
     Returns:
         [ { "file_text: "string", "file_name": "string", "id": "string" } ] 
@@ -184,14 +188,17 @@ def get_texts_from_folder() -> list[dict[str,str]]:
                 print(f"Пропускаю пустой файл {file}")
                 continue
 
+            print(f"Читаю файл '{f_name}'")
+
             c = 0
-            for text_chunk in split_text_to_chunks(text_content):
+            for text_chunk in split_text_to_chunks(text_content, chunk_max_size=chunk_max_size):
                 chunk_id = f"{f_name}_{c}"
-                result.append({
+                text_with_data = {
                     KEY_TEXT: text_chunk,
                     KEY_FILE_NAME: file.name,
                     KEY_ID: chunk_id
-                })
+                }
+                result.append(text_with_data)
                 c+=1
 
         except Exception as e:
@@ -202,11 +209,11 @@ def get_texts_from_folder() -> list[dict[str,str]]:
 
 def text_list_2_vectors_list(text_list: list[str]) -> list[list[float]]:
 
-    list_of_chinked_text = split_long_text_in_list(text_list)
+    list_of_chunked_text = split_long_text_in_list(text_list)
 
     payload = {
         "model": MODEL_NAME,
-        "input": list_of_chinked_text
+        "input": list_of_chunked_text
     }
 
     response = requests.post(EMB_URL, json=payload)
@@ -282,14 +289,14 @@ def list_collections():
 
 def split_text_to_chunks(
         input_text: str, 
-        chink_max_size: int = 512, 
+        chunk_max_size: int = 512, 
         chunk_overlap_percent: int = 30
 ) -> list[str]:
 
-    overlap_len = round(chunk_overlap_percent / 100.0 * chink_max_size)
+    overlap_len = round(chunk_overlap_percent / 100.0 * chunk_max_size)
 
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chink_max_size,
+        chunk_size=chunk_max_size,
         chunk_overlap=overlap_len,
         length_function=len,
         separators=["\n\n", "\n", ". ", " ", ""],
