@@ -30,6 +30,22 @@
             "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 --load txt"
         },
         {
+            "name": "Запрос 'горючее вещество' к Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -q 'горючее вещество'"
+        },
+        {
+            "name": "Закодировать 'горючее вещество' в Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -e горючее вещество"
+        },
+        {
             "name": "Загрузить с Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M",
             "type": "debugpy",
             "request": "launch",
@@ -76,14 +92,6 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": "-m gpustack/bge-m3-GGUF:Q4_K_M --load txt"
-        },
-        {
-            "name": "Запрос 'горючее вещество' к USER-bge-m3-Q8_0-GGUF:Q8_0",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": "-m USER-bge-m3-Q8_0-GGUF:Q8_0 -q 'горючее вещество'"
         },
         {
             "name": "Удалить коллекцию alela32_USER_bge_m3_Q8_0_GGUF_Q8_0",
