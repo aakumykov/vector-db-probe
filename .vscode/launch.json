@@ -27,7 +27,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 --load txt"
+            "args": "-em Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 --load txt"
         },
         {
             "name": "Запрос к БД 'горючее вещество' с Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
@@ -35,7 +35,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -q 'горючее вещество'"
+            "args": "-em Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -dbq 'горючее вещество'"
         },
         {
             "name": "Спросить о 'горючем веществе' модель unsloth/Qwen3.6-35B-A3B-GGUF",
@@ -43,7 +43,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m unsloth/Qwen3.6-35B-A3B-GGUF -a 'Связаны ли эти тексты с понятием \"горючее вещество\"'"
+            "args": "-a 'Связаны ли эти тексты с понятием \"горючее вещество\"?' -q 'горючее вещество' -qm 'Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0' -cm 'unsloth/Qwen3.6-35B-A3B-GGUF'"
         },
         {
             "name": "Закодировать 'горючее вещество' в Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0",
@@ -51,7 +51,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -e горючее вещество"
+            "args": "-em Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0 -e горючее вещество"
         },
         {
             "name": "Загрузить с Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M",
@@ -59,7 +59,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M --load txt"
+            "args": "-em Qwen/Qwen3-Embedding-4B-GGUF:Q4_K_M --load txt"
         },
         {
             "name": "Загрузить с Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M",
@@ -67,7 +67,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M --load txt"
+            "args": "-em Qwen/Qwen3-Embedding-8B-GGUF:Q4_K_M --load txt"
         },
         {
             "name": "Загрузить с alela32/USER-bge-m3-Q8_0-GGUF:Q8_0",
@@ -75,7 +75,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m alela32/USER-bge-m3-Q8_0-GGUF:Q8_0 --load txt"
+            "args": "-em alela32/USER-bge-m3-Q8_0-GGUF:Q8_0 --load txt"
         },
         {
             "name": "Загрузить с evilfreelancer/FRIDA-GGUF:BF16",
@@ -83,7 +83,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m evilfreelancer/FRIDA-GGUF:BF16 --load txt"
+            "args": "-em evilfreelancer/FRIDA-GGUF:BF16 --load txt"
         },
         {
             "name": "Загрузить с evilfreelancer/FRIDA-GGUF:TQ2_0",
@@ -91,7 +91,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m evilfreelancer/FRIDA-GGUF:TQ2_0 --load txt"
+            "args": "-em evilfreelancer/FRIDA-GGUF:TQ2_0 --load txt"
         },
         {
             "name": "Загрузить с gpustack/bge-m3-GGUF:Q4_K_M",
@@ -99,7 +99,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "-m gpustack/bge-m3-GGUF:Q4_K_M --load txt"
+            "args": "-em gpustack/bge-m3-GGUF:Q4_K_M --load txt"
         },
         {
             "name": "Удалить коллекцию alela32_USER_bge_m3_Q8_0_GGUF_Q8_0",

@@ -14,12 +14,12 @@ from os.path import expanduser
 from pathlib import Path
 
 import chromadb
-from chromadb import ClientAPI
+from chromadb.api import ClientAPI
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
-SERVER_HOST="localhost"
+SERVER_HOST="10.10.0.80"
 SERVER_PORT=9931
 QUERY_PATH="/v1/embeddings"
 MODELS_PATH="/v1/models"
@@ -37,7 +37,11 @@ COLLECTION_NAME: str
 DB_CLIENT: ClientAPI
 DB_COLLECTION: Any
 
-MODEL_NAME: str
+QUERY_MODEL_NAME: str
+CHAT_MODEL_NAME: str
+
+DB_QUERY: str
+ASKING_TEXT: str
 
 TXT_DIR_PATH: Path
 
@@ -60,12 +64,14 @@ group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument("-lm", "--list-models", action='store_true', dest="list_models", help="Вывести список доступных моделей")
 group.add_argument("-lc", "--list-collections", action='store_true', dest="list_collections", help="Вывести список коллекций из БД")
 group.add_argument("--load", dest="dir", type=str, help="Путь к каталогу с txt файлами")
-group.add_argument("-q", "--query", type=str, help="Текст запроса к БД")
+group.add_argument("-qdb", "--query-db", dest="query_db", type=str, help="Текст запроса к БД")
 group.add_argument("-d", "--delete", type=str, help="Удалить коллекцию (вместе с данными) из БД")
 group.add_argument("-e", "--encode", type=str, help="Закодировать строку в вектор")
-group.add_argument("-a", "--ask", "--ask-model", dest="ask_model", type=str, help="Запрос к модели")
+group.add_argument("-a", "--ask", dest="asking_text", type=str, help="Текст вопроса к модели")
 
-parser.add_argument("-m", "--model", type=str, required=False, help="Название модели")
+parser.add_argument("-qm", "--query-model", dest="query_model", type=str, required=False, help="Название модели для векторизации")
+parser.add_argument("-cm", "--chat-model", dest="chat_model", type=str, required=False, help="Название модели для вопроса")
+parser.add_argument("-q", "--query", dest="query", type=str, required=False, help="Текст запроса к БД")
 parser.add_argument("-c", "--count", type=int, required=False, default=DEFAULT_RESULTS_COUNT, help=f"Количество результатов поиска (по умолчанию: {DEFAULT_RESULTS_COUNT})")
 
 args = parser.parse_args()
@@ -79,6 +85,10 @@ def log_w(text: str):
     print(f"ПРЕДУПРЕЖДЕНИЕ: {text}")
 
 
+def log_e(text: str):
+    print(f"ОШИБКА: {text}")
+
+
 def list_models_on_server():
     response = requests.get(MODELS_URL)
     response.raise_for_status()
@@ -89,17 +99,21 @@ def list_models_on_server():
 
 
 def check_model_argument():
-    if not args.model:
+    if not args.query_model:
             print("He yka3aHo umR moDejlu")
             exit(1)
     
-    global MODEL_NAME
-    MODEL_NAME = args.model
-    log_d(f"MODEL_NAME: {MODEL_NAME}")
+    global QUERY_MODEL_NAME
+    QUERY_MODEL_NAME = args.query_model
+    log_d(f"QUERY_MODEL_NAME: {QUERY_MODEL_NAME}")
 
     global COLLECTION_NAME
-    COLLECTION_NAME = re.sub("[^0-9a-zA-Z]+", "_", MODEL_NAME)
+    COLLECTION_NAME = name_to_collection_name(QUERY_MODEL_NAME)
     log_d(f"COLLECTION_NAME: {COLLECTION_NAME}")
+
+
+def name_to_collection_name(model_name: str) -> str:
+    return re.sub("[^0-9a-zA-Z]+", "_", model_name)
 
 
 def fill_database():
@@ -232,7 +246,7 @@ def encode_string(text: str):
 def text2vector(input_text: str) -> list[float]:
 
     payload = {
-        "model": MODEL_NAME,
+        "model": QUERY_MODEL_NAME,
         "input": input_text
     }
 
@@ -252,7 +266,7 @@ def text2vector(input_text: str) -> list[float]:
 def text_list_2_vectors_list(text_list: list[str]) -> list[list[float]]:
 
     payload = {
-        "model": MODEL_NAME,
+        "model": QUERY_MODEL_NAME,
         "input": text_list
     }
 
@@ -315,7 +329,7 @@ def query_to_database_real(query_text: str):
         print(f"Текст: {preview}\n")
 
 
-def wrap_string_to_width(text: str, width: int = None, delimiter: str = "\n") -> list[str]:
+def wrap_string_to_width(text: str, width: int = 100, delimiter: str = "\n") -> str:
     if not width:
         actual_width = shutil.get_terminal_size().columns
     else:
@@ -376,12 +390,47 @@ def split_long_text_in_list(text_list: list[str]) -> list[str]:
     return chunk_list
 
 
-def ask_model(query_text: str):
+def check_two_models_arguments():
 
-    check_model_argument()
+    if not args.query_model:
+        log_e("Не задана модель векторизации")
+        exit(1)
+    else:
+        global QUERY_MODEL_NAME
+        QUERY_MODEL_NAME = args.query_model
+        log_d(f"QUERY_MODEL_NAME: {QUERY_MODEL_NAME}")
+
+        global COLLECTION_NAME
+        COLLECTION_NAME = name_to_collection_name(QUERY_MODEL_NAME)
+        log_d(f"COLLECTION_NAME: {COLLECTION_NAME}")
+
+
+    if not args.chat_model:
+        log_e("Не задана модель запроса")
+        exit(1)
+    else:
+        global CHAT_MODEL_NAME
+        CHAT_MODEL_NAME = args.chat_model
+        log_d(f"CHAT_MODEL_NAME: {CHAT_MODEL_NAME}")
+
+
+def check_query_argument():
+    if not args.query:
+        log_e("Не задан запрос к БД")
+        exit(1)
+    else:
+        global DB_QUERY
+        DB_QUERY = args.query
+        log_d(f"DB_QUERY: {DB_QUERY}")
+
+
+def ask_model(asking_text: str):
+
+    check_two_models_arguments()
+    check_query_argument()
     prepare_db()
 
-    context = prepare_query_context(query_text)
+    context = prepare_query_context(asking_text)
     if "" == context:
         print(f"По запросу 'query_text' получен пустой контекст поиска")
         exit(1)
@@ -392,10 +441,10 @@ def ask_model(query_text: str):
         "Если ответа нет в контексте, так и скажи: 'В предоставленных данных нет ответа'."
     )
 
-    user_prompt = f"КОНТЕКСТ:\n{context}\n\nВОПРОС: {query_text}"
+    user_prompt = f"КОНТЕКСТ:\n{context}\n\nВОПРОС: {asking_text}"
 
     payload = {
-        "model": MODEL_NAME,
+        "model": QUERY_MODEL_NAME,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -417,8 +466,6 @@ def ask_model(query_text: str):
         
     except requests.exceptions.RequestException as e:
         return f"Ошибка при запросе к LLM: {e}"
-
-    pass
 
 
 def prepare_query_context(query_text: str) -> str:
@@ -448,12 +495,12 @@ elif args.dir:
     fill_database()
     exit(0)
 
-elif args.query:
-    query_to_database(args.query)
+elif args.query_db:
+    query_to_database(args.query_db)
     exit(0)
 
-elif args.ask_model:
-    ask_model(args.ask_model)
+elif args.asking_text:
+    ask_model(args.asking_text)
     exit(0)
 
 elif args.delete:
