@@ -1,12 +1,13 @@
 from enum import Enum
 import questionary
+from menu_common import QUIT_MENU_CHOICE
 
-QUIT_MENU_CHOICE = ["Завершение работы"]
 
 class Model(Enum):
     EMB_DOC_YANDEX_V2 = 'text-embeddings-v2-doc'
     EMB_QUERY_YANDEX_V2 = 'text-embeddings-v2-query'
     GPT_YANDEX_5_LIST = 'yandexgpt-5-lite'
+    QUIT = QUIT_MENU_CHOICE
 
 
 def ask_for_model() -> str:
