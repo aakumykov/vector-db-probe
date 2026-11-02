@@ -1,1 +1,1 @@
-QUIT_MENU_CHOICE = "Завершение работы"
+QUIT_MENU_CHOICE = "Выйти"

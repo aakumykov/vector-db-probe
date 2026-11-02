@@ -4,6 +4,8 @@ from ask_for_action import Action
 from encode_text import encode_text
 from query_db import query_db
 from ask_model import ask_model
+import chromadb
+from chromadb.api import ClientAPI
 
 action = ask_for_action()
 
