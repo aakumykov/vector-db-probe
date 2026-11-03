@@ -24,7 +24,7 @@ model_uri = doc_uri
 text = "Хуй проссышь!"
 
 payload = {
-    "model": model_uri,
+    "modelUri": model_uri,
     "text": text
 }
 
@@ -38,12 +38,12 @@ try:
         
         # Извлекаем текст ответа из структуры JSON
         # assistant_message = result["choices"][0]["message"]["content"]
-        assistant_message = result['output'][0]['content'][0]['text']
+        assistant_message = result['embedding']
         print("Ответ модели:\n", assistant_message)
         
         # Также можно посмотреть на использование токенов
-        usage = result.get("usage", {})
-        print(f"\nИспользовано токенов: {usage.get('total_tokens', 'N/A')}")
+        usage = result.get("numTokens", {})
+        print(f"\nИспользовано токенов: {usage}")
         
     else:
         print(f"Ошибка API. Статус код: {response.status_code}")
