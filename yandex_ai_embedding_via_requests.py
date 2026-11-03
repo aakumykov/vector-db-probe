@@ -20,7 +20,7 @@ headers = {
 doc_uri   = f"emb://{YANDEX_FOLDER_ID}/text-embeddings-v2-doc/latest"
 query_uri = f"emb://{YANDEX_FOLDER_ID}/text-search-query/latest"
 
-model_uri = doc_uri
+model_uri = query_uri
 text = "Хуй проссышь!"
 
 payload = {
