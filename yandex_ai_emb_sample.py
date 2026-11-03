@@ -2,6 +2,7 @@ import os
 import requests
 import numpy as np
 from read_file_from_home import read_file_from_home
+from scipy.spatial.distance import cdist
 
 
 YANDEX_API_KEY = read_file_from_home('.yandex_ai_token')
@@ -36,10 +37,10 @@ query_embedding = get_embedding(query_text, text_type="query")
 docs_embedding = [get_embedding(doc_text) for doc_text in doc_texts]
 
 # Вычисляем косинусное расстояние
-# dist = cdist(query_embedding[None, :], docs_embedding, metric="cosine")
+dist = cdist(query_embedding[None, :], docs_embedding, metric="cosine")
 
 # # Вычисляем косинусное сходство
-# sim = 1 - dist
+sim = 1 - dist
 
 # # most similar doc text
-# print(doc_texts[np.argmax(sim)])
+print(doc_texts[np.argmax(sim)])
